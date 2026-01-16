@@ -1,0 +1,40 @@
+# Configuração Ruff compartilhada entre todos os projetos Python
+# Localização: /home/haseu/projects/lint-configs/ruff/base.toml
+
+target-version = "py312"
+line-length = 100
+
+[lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming (naming conventions)
+    "UP",    # pyupgrade (modernize Python code)
+    "S",     # bandit (security issues)
+    "B",     # flake8-bugbear (common bugs)
+    "A",     # flake8-builtins (shadowing builtins)
+    "C4",    # flake8-comprehensions
+    "C90",   # mccabe complexity
+    "RET",   # flake8-return (return statements)
+    "SIM",   # flake8-simplify
+    "ARG",   # flake8-unused-arguments
+    "PLR",   # pylint refactoring rules
+]
+
+ignore = [
+    "F401",   # unused imports (handled by auto-ruff.py hook)
+    "S101",   # assert detected (allow asserts in tests)
+    "S104",   # possible binding to all interfaces (allow 0.0.0.0 in dev)
+    "S311",   # pseudo-random generators (allow random module)
+]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-args = 5
+max-branches = 12
+max-returns = 6
+max-statements = 50

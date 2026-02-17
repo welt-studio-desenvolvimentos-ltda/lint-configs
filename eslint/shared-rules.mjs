@@ -28,6 +28,19 @@ export const bestPracticesRules = {
   eqeqeq: ["error", "always"],
   curly: ["error", "all"],
   "no-console": "warn",
+  // Adicionadas do comichub
+  "array-callback-return": "error",
+  "no-async-promise-executor": "error",
+  "no-promise-executor-return": "error",
+  "require-await": "error",
+  "prefer-promise-reject-errors": "error",
+  "no-new-func": "error",
+  "no-script-url": "error",
+  "no-unsafe-optional-chaining": "error",
+  "prefer-object-has-own": "error",
+  "prefer-object-spread": "error",
+  "prefer-template": "error",
+  "no-useless-concat": "error",
 };
 
 // TypeScript rules padrão
@@ -40,6 +53,23 @@ export const typescriptRules = {
     },
   ],
   "@typescript-eslint/no-explicit-any": "warn",
+};
+
+// Code quality (do comichub)
+export const codeQualityRules = {
+  "capitalized-comments": [
+    "warn",
+    "always",
+    {
+      ignorePattern: "pragma|ignore|prettier-ignore|webpack\\w+:|c8",
+      ignoreInlineComments: true,
+    },
+  ],
+  "spaced-comment": ["error", "always", { markers: ["/"] }],
+  "no-warning-comments": [
+    "warn",
+    { terms: ["todo", "fixme", "hack"], location: "start" },
+  ],
 };
 
 // Ignores comuns

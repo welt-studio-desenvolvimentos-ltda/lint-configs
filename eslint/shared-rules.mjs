@@ -1,14 +1,16 @@
 /**
- * Configurações ESLint compartilhadas entre todos os projetos
- * Localização: /home/haseu/projects/lint-configs/eslint/shared-rules.mjs
+ * Regras ESLint da Welt Studio, declaradas uma vez para todos os projetos.
+ *
+ * `index.mjs` as aplica junto com os presets; os projetos só importam daqui o que precisam
+ * reaplicar num override local.
  */
 
-// Regras de complexidade (substituem solid-principles.md)
+// Tamanho e complexidade. Valores medidos nos projetos: abaixo deles a regra vira ruído.
 export const complexityRules = {
-  complexity: ["error", { max: 10 }],
+  complexity: ["error", { max: 12 }],
   "max-lines-per-function": [
     "error",
-    { max: 50, skipBlankLines: true, skipComments: true },
+    { max: 80, skipBlankLines: true, skipComments: true },
   ],
   "max-params": ["error", 5],
   "max-depth": ["error", 4],
@@ -16,24 +18,23 @@ export const complexityRules = {
   "max-statements": ["error", 30],
   "max-lines": [
     "error",
-    { max: 300, skipBlankLines: true, skipComments: true },
+    { max: 400, skipBlankLines: true, skipComments: true },
   ],
 };
 
-// Best practices
+// Boas práticas de JS que o `recommended` não liga. As de promise ficam com as versões com tipo do
+// typescript-eslint (`require-await`, `prefer-promise-reject-errors`), que o `strictTypeChecked`
+// já traz.
 export const bestPracticesRules = {
   "no-nested-ternary": "error",
   "prefer-const": "error",
   "no-var": "error",
   eqeqeq: ["error", "always"],
   curly: ["error", "all"],
-  "no-console": "warn",
-  // Adicionadas do comichub
+  "no-console": ["error", { allow: ["warn", "error"] }],
   "array-callback-return": "error",
   "no-async-promise-executor": "error",
   "no-promise-executor-return": "error",
-  "require-await": "error",
-  "prefer-promise-reject-errors": "error",
   "no-new-func": "error",
   "no-script-url": "error",
   "no-unsafe-optional-chaining": "error",
@@ -43,43 +44,42 @@ export const bestPracticesRules = {
   "no-useless-concat": "error",
 };
 
-// TypeScript rules padrão
 export const typescriptRules = {
   "@typescript-eslint/no-unused-vars": [
     "error",
-    {
-      argsIgnorePattern: "^_",
-      varsIgnorePattern: "^_",
-    },
+    { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
   ],
-  "@typescript-eslint/no-explicit-any": "warn",
-};
-
-// Code quality (do comichub)
-export const codeQualityRules = {
-  "capitalized-comments": [
-    "warn",
-    "always",
-    {
-      ignorePattern: "pragma|ignore|prettier-ignore|webpack\\w+:|c8",
-      ignoreInlineComments: true,
-    },
-  ],
-  "spaced-comment": ["error", "always", { markers: ["/"] }],
-  "no-warning-comments": [
-    "warn",
-    { terms: ["todo", "fixme", "hack"], location: "start" },
+  "@typescript-eslint/consistent-type-imports": [
+    "error",
+    { prefer: "type-imports" },
   ],
 };
 
-// Ignores comuns
+// Desligar regra é exceção: nunca o arquivo inteiro, nunca sem dizer quais regras, nunca sem motivo
+// (`// eslint-disable-next-line regra -- motivo`). Diretiva que não desliga nada é erro pelo
+// `linterOptions` em `index.mjs`.
+export const disableDirectiveRules = {
+  "@eslint-community/eslint-comments/no-unlimited-disable": "error",
+  "@eslint-community/eslint-comments/disable-enable-pair": [
+    "error",
+    { allowWholeFile: false },
+  ],
+  "@eslint-community/eslint-comments/require-description": "error",
+};
+
+// O prefixo `**/` é obrigatório: no flat config os padrões são relativos à raiz da config e `*` não
+// atravessa `/`. Sem ele, `*.min.js` só pega minificado na raiz e `dist/**` só o `dist` de primeiro
+// nível — foi assim que um `eslint --fix` reescreveu um UMD minificado de terceiro no pg-studio.
 export const ignores = [
-  "node_modules/**",
-  "dist/**",
-  "build/**",
-  "coverage/**",
-  "*.min.js",
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/coverage/**",
+  "**/*.min.js",
+  "**/*.min.mjs",
+  // Código de terceiros: entra no repo como está e não é nosso para arrumar.
+  "**/vendor/**",
   ".env*",
-  ".next/**",
-  "out/**",
+  "**/.next/**",
+  "**/out/**",
 ];

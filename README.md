@@ -1,108 +1,57 @@
 # Lint Configs
 
-Configurações compartilhadas de ESLint e Ruff para todos os projetos.
+Configurações de lint da Welt Studio, declaradas uma vez para todos os projetos.
 
-## Estrutura
+## ESLint: `@welt-studio-desenvolvimentos-ltda/eslint-config`
 
-- `eslint/shared-rules.mjs` - Regras ESLint (complexidade, best practices, TypeScript)
-- `ruff/base.toml` - Configuração Ruff (segurança, bugs, complexidade)
+Pacote em `eslint/`, instalado por tag do git (o repositório é público, então nenhum ambiente
+precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 
-## Como usar
+```json
+"@welt-studio-desenvolvimentos-ltda/eslint-config": "github:welt-studio-desenvolvimentos-ltda/lint-configs#eslint-v1.0.0&path:/eslint"
+```
 
-### ESLint
+O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`.
 
 ```javascript
 // eslint.config.mjs
-import {
-  complexityRules,
-  bestPracticesRules,
-  typescriptRules,
-  ignores
-} from '../lint-configs/eslint/shared-rules.mjs';
+import { weltConfig } from "@welt-studio-desenvolvimentos-ltda/eslint-config";
 
-export default defineConfig([
-  globalIgnores(ignores),
-  {
-    rules: {
-      ...typescriptRules,
-      ...complexityRules,
-      ...bestPracticesRules,
-    },
-  },
-]);
+export default [
+  ...weltConfig({
+    tsconfigRootDir: import.meta.dirname,
+    files: ["src/**/*.{ts,tsx}"],
+    query: true, // projetos com TanStack Query
+  }),
+  // overrides do projeto
+];
 ```
 
-### Ruff
+`weltConfig` aplica:
 
-```toml
-# ruff.toml
-extend = "../lint-configs/ruff/base.toml"
-```
+| Bloco | O que pega |
+|---|---|
+| `typescript-eslint` `strictTypeChecked` + `stylisticTypeChecked` | promise sem `await`/`catch`, `async` onde se espera retorno síncrono, `any` vazando, condição sempre verdadeira |
+| `@eslint-react/eslint-plugin` (`recommended-type-checked`) | key ausente ou instável, contexto recriado a cada render, API do React usada errado (substitui o `eslint-plugin-react`, parado no ESLint 9) |
+| `eslint-plugin-react-hooks` (`recommended-latest`) | regras dos hooks e do React Compiler |
+| `eslint-plugin-jsx-a11y-x` (`recommended`) | acessibilidade (fork do `jsx-a11y` que suporta ESLint 10) |
+| `@tanstack/eslint-plugin-query` (`query: true`) | chave de query incompleta, `QueryClient` instável |
+| `eslint-comments` + `linterOptions` | `eslint-disable` de arquivo inteiro, sem regra ou sem motivo (`-- motivo`), e diretiva que não desliga nada |
+| `shared-rules.mjs` | tamanho e complexidade (`complexity` 12, função 80 linhas, arquivo 400), boas práticas, ignores comuns |
 
-## Versionamento
+As regras também saem soltas (`complexityRules`, `bestPracticesRules`, `typescriptRules`,
+`disableDirectiveRules`, `ignores`) para o projeto reaplicar num override.
 
-Este repo é versionado com git. Para atualizar configs em todos os projetos:
+`eslint` (10), `@eslint/js` (10), `typescript` (6) e `typescript-eslint` são `peerDependencies`: a
+versão é a do projeto, e o padrão exige essas majors. Os plugins vêm com o pacote, em versão fixa.
 
-```bash
-cd /home/haseu/projects/lint-configs
-# Fazer mudanças
-git add .
-git commit -m "feat: add new rule"
-git push  # (opcional - se tiver remote)
-```
+### Publicar uma versão
 
-Mudanças se propagam automaticamente para todos os projetos que importam daqui.
+1. Mudar `eslint/`, subir `version` no `eslint/package.json`.
+2. Commit e tag `eslint-vX.Y.Z` no mesmo commit, push da tag.
+3. Em cada projeto, trocar a tag na dependência e rodar `pnpm install`.
 
-## Projetos usando estas configs
+## Ruff e Pyright
 
-- welt-studio
-- (adicionar outros projetos aqui)
-
-## Regras Incluídas
-
-### ESLint
-
-**Complexidade** (substituem solid-principles.md):
-- `complexity`: max 10
-- `max-lines-per-function`: max 50 linhas
-- `max-params`: max 5 parâmetros
-- `max-depth`: max 4 níveis de nesting
-- `max-nested-callbacks`: max 3 callbacks aninhados
-- `max-statements`: max 30 statements por função
-- `max-lines`: max 300 linhas por arquivo
-
-**Best Practices**:
-- `no-nested-ternary`: proíbe ternários aninhados
-- `prefer-const`: força uso de const
-- `no-var`: proíbe var
-- `eqeqeq`: força `===`
-- `curly`: força chaves em if/else
-- `no-console`: avisa sobre console.log
-
-**TypeScript**:
-- `no-unused-vars`: ignora variáveis com `_` prefix
-- `no-explicit-any`: avisa sobre `any`
-
-### Ruff
-
-**Categorias ativadas**:
-- `E/W`: pycodestyle errors/warnings
-- `F`: pyflakes
-- `I`: isort (import sorting)
-- `N`: pep8-naming
-- `UP`: pyupgrade (modernize code)
-- `S`: bandit (security)
-- `B`: bugbear (common bugs)
-- `A`: builtins (shadowing)
-- `C4`: comprehensions
-- `C90`: mccabe complexity (max 10)
-- `RET`: return statements
-- `SIM`: simplify
-- `ARG`: unused arguments
-- `PLR`: pylint refactoring
-
-**Limites de complexidade**:
-- max-args: 5
-- max-branches: 12
-- max-returns: 6
-- max-statements: 50
+`ruff/base.toml` e `pyright/pyrightconfig.json` são referência; os projetos Python ainda mantêm a
+própria configuração.

@@ -1,5 +1,4 @@
 # Configuração Ruff compartilhada entre todos os projetos Python
-# Localização: /home/haseu/projects/lint-configs/ruff/base.toml
 
 target-version = "py312"
 line-length = 100

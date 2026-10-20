@@ -22,6 +22,24 @@ export const complexityRules = {
   ],
 };
 
+// Arquivos de teste dos projetos.
+export const testFiles = [
+  "**/*.{test,spec}.{ts,tsx}",
+  "**/__tests__/**",
+  "**/test/**",
+  "**/e2e/**",
+];
+
+// Nos testes, tamanho não é defeito: `describe` → `describe` → `it` → callback já são 4 níveis, e
+// o `describe` cresce com o número de casos. O resto do padrão continua valendo — em especial as
+// regras com tipo, que pegam `expect(...).rejects` sem `await` (teste que passa sem testar nada).
+export const testRelaxedRules = {
+  "max-lines-per-function": "off",
+  "max-statements": "off",
+  "max-nested-callbacks": "off",
+  "max-lines": "off",
+};
+
 // Boas práticas de JS que o `recommended` não liga. As de promise ficam com as versões com tipo do
 // typescript-eslint (`require-await`, `prefer-promise-reject-errors`), que o `strictTypeChecked`
 // já traz.

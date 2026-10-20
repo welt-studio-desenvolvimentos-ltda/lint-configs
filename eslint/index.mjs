@@ -3,10 +3,10 @@
  *
  * Uso (`eslint.config.mjs` do projeto):
  *
- *   import { weltConfig } from "@welt-studio-desenvolvimentos-ltda/eslint-config";
+ *   import { weltConfig } from "@welt-studio/eslint-config";
  *   export default [
  *     ...weltConfig({ tsconfigRootDir: import.meta.dirname, files: ["src/**\/*.{ts,tsx}"], query: true }),
- *     // overrides do projeto
+ *     // complementos do projeto (plugins e regras próprias), nunca limites diferentes
  *   ];
  */
 import js from "@eslint/js";
@@ -14,6 +14,7 @@ import commentConfigs from "@eslint-community/eslint-plugin-eslint-comments/conf
 import eslintReact from "@eslint-react/eslint-plugin";
 import pluginQuery from "@tanstack/eslint-plugin-query";
 import jsxA11y from "eslint-plugin-jsx-a11y-x";
+import prettierRecommended from "eslint-plugin-prettier/recommended";
 import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
@@ -22,6 +23,8 @@ import {
   complexityRules,
   disableDirectiveRules,
   ignores,
+  testFiles,
+  testRelaxedRules,
   typescriptRules,
 } from "./shared-rules.mjs";
 
@@ -30,8 +33,45 @@ export {
   complexityRules,
   disableDirectiveRules,
   ignores,
+  testFiles,
+  testRelaxedRules,
   typescriptRules,
 };
+
+const hookRules = reactHooks.configs.flat["recommended-latest"];
+const hookRuleNames = new Set(Object.keys(hookRules.rules).map((rule) => rule.split("/")[1]));
+
+// O `@eslint-react` reimplementa regras do plugin oficial de hooks. Fica a versão oficial, que é a
+// fonte das regras do React Compiler; as gêmeas do `@eslint-react` saem para não reportar em dobro.
+const eslintReactWithoutHookTwins = (() => {
+  const config = eslintReact.configs["recommended-type-checked"];
+  const rules = Object.fromEntries(
+    Object.entries(config.rules).filter(([rule]) => !hookRuleNames.has(rule.split("/")[1])),
+  );
+  return { ...config, rules };
+})();
+
+const isWarn = (level) => level === "warn" || level === 1;
+
+// Aviso não existe no padrão: os projetos rodam com `--max-warnings=0`, então todo aviso já reprova.
+// Cada regra é erro ou está desligada, sem meio-termo que pareça opcional.
+function warningsAsErrors(config) {
+  if (!config.rules) {
+    return config;
+  }
+  const rules = Object.fromEntries(
+    Object.entries(config.rules).map(([rule, value]) => {
+      if (isWarn(value)) {
+        return [rule, "error"];
+      }
+      if (Array.isArray(value) && isWarn(value[0])) {
+        return [rule, ["error", ...value.slice(1)]];
+      }
+      return [rule, value];
+    }),
+  );
+  return { ...config, rules };
+}
 
 /**
  * @param {object} options
@@ -51,7 +91,7 @@ export function weltConfig({
 }) {
   const scoped = (configs) => configs.map((config) => ({ ...config, files }));
 
-  return [
+  const configs = [
     { name: "welt/ignores", ignores: [...ignores, ...projectIgnores] },
     {
       name: "welt/linter-options",
@@ -70,11 +110,8 @@ export function weltConfig({
     },
     ...(react
       ? [
-          { ...eslintReact.configs["recommended-type-checked"], files },
-          // As regras de hooks ficam com o plugin oficial, logo abaixo; esta tira as do
-          // `@eslint-react` que repetiriam as dele.
-          { ...eslintReact.configs["disable-conflict-eslint-plugin-react-hooks"], files },
-          { ...reactHooks.configs.flat["recommended-latest"], files },
+          { ...eslintReactWithoutHookTwins, files },
+          { ...hookRules, files },
           { ...jsxA11y.configs.recommended, files },
         ]
       : []),
@@ -90,5 +127,13 @@ export function weltConfig({
         ...disableDirectiveRules,
       },
     },
+    { name: "welt/tests", files: testFiles, rules: testRelaxedRules },
+    // Prettier por último: formata como regra e desliga o que conflita com ele.
+    { ...prettierRecommended, files },
+    // O `eslint-config-prettier` desliga `curly`, mas na forma `all` ela não conflita com o Prettier
+    // (é uma das "special rules" dele). Sem religar aqui, o `curly` do padrão nunca rodaria.
+    { name: "welt/curly-after-prettier", files, rules: { curly: bestPracticesRules.curly } },
   ];
+
+  return configs.map(warningsAsErrors);
 }

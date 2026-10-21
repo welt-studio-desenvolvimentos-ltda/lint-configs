@@ -1,5 +1,6 @@
 export {
   bestPracticesRules,
+  commentRules,
   complexityRules,
   disableDirectiveRules,
   ignores,

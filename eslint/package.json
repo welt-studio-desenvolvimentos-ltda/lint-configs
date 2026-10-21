@@ -1,6 +1,6 @@
 {
   "name": "@welt-studio/eslint-config",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Configuração ESLint padrão da Welt Studio para frontends em TypeScript",
   "type": "module",
   "license": "UNLICENSED",
@@ -27,7 +27,8 @@
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-jsx-a11y-x": "0.2.0",
     "eslint-plugin-prettier": "5.5.6",
-    "eslint-plugin-react-hooks": "7.1.1"
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0"
   },
   "peerDependencies": {
     "@eslint/js": "^10.0.1",

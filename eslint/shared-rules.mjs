@@ -62,6 +62,22 @@ export const bestPracticesRules = {
   "no-useless-concat": "error",
 };
 
+// Comentários: espaço depois de `//`, frase começando em maiúscula e nenhuma pendência no código —
+// TODO/FIXME/HACK vão para o débito técnico, o parking lot ou o roadmap, onde alguém os vê.
+export const commentRules = {
+  "capitalized-comments": [
+    "error",
+    "always",
+    {
+      ignorePattern: "pragma|ignore|prettier-ignore|webpack\\w+:|c8|eslint|ts-",
+      ignoreInlineComments: true,
+      ignoreConsecutiveComments: true,
+    },
+  ],
+  "spaced-comment": ["error", "always", { markers: ["/"] }],
+  "no-warning-comments": ["error", { terms: ["todo", "fixme", "hack"] }],
+};
+
 export const typescriptRules = {
   "@typescript-eslint/no-unused-vars": [
     "error",

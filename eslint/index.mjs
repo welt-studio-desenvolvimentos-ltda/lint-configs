@@ -186,6 +186,7 @@ const codeAttributes = [
   "width",
   "height",
   "\\w*(ClassName|Class|Color|Icon|Id)",
+  "classNames",
   "data-[\\w-]+",
   "testId",
   "aria-(?!label$|description$|roledescription$|valuetext$|placeholder$)[\\w-]+",
@@ -201,6 +202,33 @@ const codeAttributes = [
   "(viewBox|d|fill|stroke|xmlns|transform|points|cx|cy|r|x|y|x1|x2|y1|y2|clipPath|mask)",
   "(fill|stroke|clip|font|text)[A-Z]\\w*",
 ];
+
+// Chamadas cujos argumentos são código: classes (`cn`, `clsx`, `cva`, `twMerge`), locale e formato
+// (`toLocaleString("pt-BR")`, `new Intl.DateTimeFormat(...)`). Os primeiros itens são o padrão do
+// plugin (a opção substitui a lista dele).
+const codeCallees = [
+  "i18n(ext)?",
+  "t",
+  "require",
+  "addEventListener",
+  "removeEventListener",
+  "postMessage",
+  "getElementById",
+  "dispatch",
+  "commit",
+  "includes",
+  "indexOf",
+  "endsWith",
+  "startsWith",
+  "(cn|clsx|cva|twMerge)",
+  "toLocale\\w*String",
+  "Intl\\.\\w+",
+];
+
+// Objeto dentro do JSX segue a mesma lista dos atributos: `transition={{ type: "spring" }}` e
+// `toastOptions={{ classNames: { … } }}` são código; `{ label: "Valor" }` é texto. O primeiro padrão
+// é o do plugin (chave em CAIXA_ALTA).
+const codeObjectProperties = ["[A-Z_-]+", ...codeAttributes];
 
 // Toast é texto visível fora do JSX, que a regra do i18next (no modo só-JSX) não vê: `toast("…")`,
 // `toast.error("…")` e `description`/`title` nas opções dele. Casa só as chamadas que mostram
@@ -231,7 +259,12 @@ const i18nConfigs = (files) => [
     rules: {
       "i18next/no-literal-string": [
         "error",
-        { mode: "jsx-only", "jsx-attributes": { exclude: codeAttributes } },
+        {
+          mode: "jsx-only",
+          "jsx-attributes": { exclude: codeAttributes },
+          "object-properties": { exclude: codeObjectProperties },
+          callees: { exclude: codeCallees },
+        },
       ],
       "no-restricted-syntax": toastLiteralRule,
     },

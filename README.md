@@ -8,7 +8,7 @@ Pacote em `eslint/`, instalado por tag do git (o repositório é público, entã
 precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 
 ```json
-"@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v1.0.2&path:/eslint"
+"@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v2.0.0&path:/eslint"
 ```
 
 O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`.
@@ -53,17 +53,16 @@ padrão inteiro menos as regras que exigem tipo, com os globais do Node.
 | `eslint-plugin-jsx-a11y-x` (`recommended`) | acessibilidade (fork do `jsx-a11y` que suporta ESLint 10) |
 | `@tanstack/eslint-plugin-query` (`query: true`) | chave de query incompleta, `QueryClient` instável |
 | `eslint-comments` + `linterOptions` | `eslint-disable` de arquivo inteiro, sem regra ou sem motivo (`-- motivo`), e diretiva que não desliga nada |
-| `shared-rules.mjs` | `complexity` 12, função 80 linhas, arquivo 400, `max-statements` 30, `max-params` 5, `max-depth` 4, `max-nested-callbacks` 3, boas práticas, ignores comuns |
-| Comentários | espaço depois de `//`, frase em maiúscula, nenhum TODO/FIXME/HACK no código (vão para o débito técnico, parking lot ou roadmap) |
+| Tamanho, complexidade e boas práticas | `complexity` 12, função 80 linhas, arquivo 400, `max-statements` 30, `max-params` 5, `max-depth` 4, `max-nested-callbacks` 3, boas práticas, ignores comuns |
+| Comentários | espaço depois de `//`, frase em maiúscula (menos quando começa com nome de código, como `hydrateRoot`), nenhum `TODO:`/`FIXME`/`HACK:` no código (vão para o débito técnico, parking lot ou roadmap) |
 | Testes (`*.test.*`, `*.spec.*`, `__tests__/`, `test/`, `e2e/`) | sem limites de tamanho; o resto do padrão vale |
 | Prettier (`eslint-plugin-prettier`) | formatação como regra, por último; `curly` religado depois dele |
 
 **Não há aviso:** toda regra é erro ou está desligada (os projetos rodam com `--max-warnings=0`, e
 um aviso já reprovaria).
 
-As regras também saem soltas (`complexityRules`, `bestPracticesRules`, `commentRules`,
-`typescriptRules`, `disableDirectiveRules`, `testRelaxedRules`, `testFiles`, `ignores`), também por
-`@welt-studio/eslint-config/rules`. O pacote traz tipos (`index.d.ts`).
+O pacote exporta só `weltConfig` (com tipos em `index.d.ts`): não há regra solta para reaplicar,
+porque reaplicar pedaço do padrão é montar uma versão parcial dele.
 
 `eslint` (10), `@eslint/js` (10), `typescript` (6), `typescript-eslint` e `prettier` (3) são
 `peerDependencies`: a versão é a do projeto, e o padrão exige essas majors. Os plugins vêm com o

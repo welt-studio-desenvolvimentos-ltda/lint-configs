@@ -15,7 +15,7 @@ export interface WeltConfigOptions {
   react?: boolean;
   /** Liga as regras do TanStack Query. Padrão: `false`. */
   query?: boolean;
-  /** Ignores do projeto, somados aos comuns. */
+  /** Ignores do projeto (código gerado ou de terceiros), somados aos comuns. */
   ignores?: string[];
   /**
    * Complementos do projeto (plugins e regras que só existem ali), aplicados depois do padrão e antes
@@ -25,12 +25,3 @@ export interface WeltConfigOptions {
 }
 
 export function weltConfig(options: WeltConfigOptions): Linter.Config[];
-
-export const complexityRules: Linter.RulesRecord;
-export const bestPracticesRules: Linter.RulesRecord;
-export const commentRules: Linter.RulesRecord;
-export const typescriptRules: Linter.RulesRecord;
-export const disableDirectiveRules: Linter.RulesRecord;
-export const testRelaxedRules: Linter.RulesRecord;
-export const testFiles: string[];
-export const ignores: string[];

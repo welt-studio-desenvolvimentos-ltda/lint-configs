@@ -1,6 +1,6 @@
 {
   "name": "@welt-studio/eslint-config",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Configuração ESLint padrão da Welt Studio para frontends em TypeScript",
   "type": "module",
   "license": "UNLICENSED",
@@ -13,13 +13,9 @@
     ".": {
       "types": "./index.d.ts",
       "default": "./index.mjs"
-    },
-    "./rules": {
-      "types": "./shared-rules.d.ts",
-      "default": "./shared-rules.mjs"
     }
   },
-  "files": ["index.mjs", "index.d.ts", "shared-rules.mjs", "shared-rules.d.ts"],
+  "files": ["index.mjs", "index.d.ts"],
   "dependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
     "@eslint-react/eslint-plugin": "5.26.5",

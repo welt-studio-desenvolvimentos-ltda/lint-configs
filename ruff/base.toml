@@ -1,68 +1,119 @@
-# Configuração Ruff compartilhada entre todos os projetos Python
+# Padrão Ruff da Welt Studio: o mesmo para todos os projetos Python.
+#
+# O projeto não usa este arquivo daqui: o hook `ruff-base` (este repo, `.pre-commit-hooks.yaml`)
+# copia-o para `ruff-base.toml` na raiz do projeto, e o `ruff.toml` de cada pacote faz `extend`
+# dessa cópia. O projeto só declara fatos dele (`known-first-party`, código gerado ou de terceiros
+# em `extend-exclude`); regra, limite e exceção vêm daqui. Precisou de regra nova? Entra aqui, para
+# todos, numa tag nova.
 
-target-version = "py312"
+target-version = "py314"
 line-length = 100
+# A versão do Ruff mora no `uv.lock` de cada projeto; esta linha reprova qualquer outra, para o
+# padrão nunca rodar com regras que ele não conhece.
+required-version = "==0.16.10"
+preview = true
 
 [lint]
+# Preview só nas regras pedidas pelo código (não liga as de preview das famílias abaixo).
+explicit-preview-rules = true
+# Lista explícita, sem `ALL`: subir o Ruff não liga regra nova sozinho.
 select = [
-    "E",     # pycodestyle errors
-    "W",     # pycodestyle warnings
-    "F",     # pyflakes
-    "I",     # isort
-    "N",     # pep8-naming (naming conventions)
-    "UP",    # pyupgrade (modernize Python code)
-    "S",     # bandit (security issues)
-    "B",     # flake8-bugbear (common bugs)
-    "A",     # flake8-builtins (shadowing builtins)
-    "C4",    # flake8-comprehensions
-    "C90",   # mccabe complexity
-    "RET",   # flake8-return (return statements)
-    "SIM",   # flake8-simplify
-    "ARG",   # flake8-unused-arguments
-    "PLR",   # pylint refactoring rules
-    # Adicionadas do comichub
-    "ASYNC", # async/await best practices
-    "DTZ",   # datetime timezone awareness
-    "PIE",   # misc lints (flake8-pie)
-    "T20",   # print statement detection
-    "ERA",   # commented-out code (eradicate)
-    "TD",    # TODO comments formatting
-    "FIX",   # FIXME comments
-    "PTH",   # pathlib usage (prefer Path over os.path)
-    "FA",    # future annotations
-    "TCH",   # type-checking blocks
-    "PERF",  # performance anti-patterns (perflint)
-    "FURB",  # refurb (modernize idioms)
+    "E",       # pycodestyle errors
+    "W",       # pycodestyle warnings
+    "F",       # pyflakes
+    "I",       # isort
+    "N",       # pep8-naming
+    "UP",      # pyupgrade
+    "S",       # bandit (segurança)
+    "B",       # flake8-bugbear
+    "A",       # flake8-builtins
+    "C4",      # flake8-comprehensions
+    "C90",     # mccabe (complexidade)
+    "RET",     # flake8-return
+    "SIM",     # flake8-simplify
+    "ARG",     # flake8-unused-arguments
+    "PLC",     # pylint convention
+    "PLE",     # pylint errors
+    "PLR",     # pylint refactor (limites em [lint.pylint])
+    "PLW",     # pylint warnings
+    "ASYNC",   # async/await
+    "DTZ",     # datetime sem timezone
+    "PIE",     # flake8-pie
+    "T20",     # print
+    "ERA",     # código comentado
+    "TD",      # formato de TODO
+    "FIX",     # TODO/FIXME/HACK no código (vão para o débito técnico, parking lot ou roadmap)
+    "PTH",     # pathlib no lugar de os.path
+    "RUF",     # regras do Ruff (inclui RUF100: noqa que não suprime nada)
+    "PERF",    # perflint
+    "FURB",    # refurb
+    "BLE",     # except Exception cego
+    "G",       # formato de logging
+    "TRY",     # tryceratops
+    "ANN",     # anotações de tipo
+    "SLF",     # acesso a membro privado de fora da classe
+    "TC",      # imports só de tipo em TYPE_CHECKING
+    "FAST",    # FastAPI (só dispara em código FastAPI)
+    "DJ",      # Django (só dispara em código Django)
+    "TID251",  # APIs proibidas ([lint.flake8-tidy-imports.banned-api])
+    "PGH004",  # noqa sem código
+    "PLC0415", # import dentro de função
 ]
-
 ignore = [
-    "F401",   # unused imports (handled by auto-ruff.py hook)
-    "S101",   # assert detected (allow asserts in tests)
-    "S104",   # possible binding to all interfaces (allow 0.0.0.0 in dev)
-    "S311",   # pseudo-random generators (allow random module)
-]
-
-# Ignores específicos por arquivo (do comichub)
-[lint.per-file-ignores]
-"**/tests/**/*.py" = [
-    "S101",    # asserts in tests
-    "PLR2004", # magic values ok in tests
-    "ARG001",  # unused function arguments (fixtures)
-]
-"**/migrations/**/*.py" = [
-    "E501",    # line too long (generated code)
-    "N999",    # invalid module name
+    "S105", # hardcoded-password-string: falso positivo com o token type "bearer" do OAuth2
+    "S106", # hardcoded-password-func-arg: idem
+    "B008", # chamada em default de argumento: é como o FastAPI declara `Depends(...)`
+    # Conflitam com o `ruff format` (docs.astral.sh/ruff/formatter/#conflicting-lint-rules).
+    "W191",
+    "E111",
+    "E114",
+    "E117",
 ]
 
 [lint.mccabe]
-max-complexity = 10
+# Igual ao `complexity` do ESLint.
+max-complexity = 12
 
 [lint.pylint]
+# Os padrões do Ruff (vindos do pylint). `max-args` 5 é o mesmo `max-params` do ESLint.
 max-args = 5
 max-branches = 12
 max-returns = 6
 max-statements = 50
 
-[lint.isort]
-section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
-# known-first-party deve ser configurado por projeto
+[lint.flake8-type-checking]
+# O Pydantic e o FastAPI leem as anotações em runtime: um tipo usado só num campo de modelo ou na
+# assinatura de uma rota não pode ir para `TYPE_CHECKING` (o `--fix` do TC001/TC003 faria isso e
+# quebraria o app).
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+runtime-evaluated-decorators = [
+    "fastapi.APIRouter.get",
+    "fastapi.APIRouter.post",
+    "fastapi.APIRouter.put",
+    "fastapi.APIRouter.patch",
+    "fastapi.APIRouter.delete",
+]
+
+[lint.flake8-tidy-imports.banned-api]
+"__future__.annotations".msg = "Python >=3.14 já adia a avaliação das anotações (PEP 649)."
+
+[lint.per-file-ignores]
+# Testes: assert, número mágico, fixture injetada e acesso a privado são o normal; tamanho não é
+# defeito (como os testes no ESLint). O resto do padrão vale.
+"**/tests/**/*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "C901"]
+"**/test_*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "C901"]
+# Models do ORM: o SQLAlchemy lê `Mapped[datetime]` em runtime ao montar o mapper, então o import
+# não pode ir para `TYPE_CHECKING` (quebra com `MappedAnnotationError`). Marcar a `Base` como
+# runtime não serve: o Ruff não segue a `Base` do projeto até o `DeclarativeBase`, e declarar a
+# `Base` acusaria TC004 nos relacionamentos. O conserto do TC é inseguro e o `--fix` não o aplica,
+# mas o erro falso ficaria.
+"**/models/**/*.py" = ["TC001", "TC002", "TC003"]
+"**/models.py" = ["TC001", "TC002", "TC003"]
+# Migrations geradas pelo Alembic/Django: não são escritas à mão.
+"**/alembic/versions/**/*.py" = ["ALL"]
+"**/migrations/**/*.py" = ["ALL"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

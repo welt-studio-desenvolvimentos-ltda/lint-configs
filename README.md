@@ -68,7 +68,54 @@ pacote, em versão fixa — o projeto não declara nem registra nenhum deles.
 2. Commit e tag `eslint-vX.Y.Z` no mesmo commit, push da tag.
 3. Em cada projeto, trocar a tag na dependência e rodar `pnpm install`.
 
-## Ruff e Pyright
+## Ruff: `ruff/base.toml` pelo hook `ruff-base`
 
-`ruff/base.toml` e `pyright/pyrightconfig.json` são referência; os projetos Python ainda mantêm a
-própria configuração.
+O `extend` do Ruff só lê arquivo local (sem URL nem pacote), então o padrão chega ao projeto como
+cópia, mantida por um hook de pre-commit deste repo:
+
+```yaml
+# .pre-commit-config.yaml
+- repo: https://github.com/welt-studio/lint-configs
+  rev: ruff-v1.0.0
+  hooks:
+    - id: ruff-base
+```
+
+O hook escreve `ruff-base.toml` na raiz do projeto, igual ao `ruff/base.toml` do `rev`. Se a cópia
+diverge (editada à mão, ou o `rev` mudou), ele a reescreve e reprova o commit uma vez, como um
+formatter. A versão do padrão fica só no `rev`.
+
+```toml
+# <pacote>/ruff.toml
+extend = "../../ruff-base.toml" # caminho até a raiz do projeto
+
+[lint.isort]
+known-first-party = ["app"]
+```
+
+**O padrão é o mesmo em todos os projetos.** O `ruff.toml` do pacote só declara fatos do projeto:
+`known-first-party` e, em `extend-exclude`, código gerado ou de terceiros. Regra, limite e exceção
+vêm do base; precisou de regra nova, ela entra aqui, para todos, numa tag nova.
+
+| Bloco | O que fixa |
+|---|---|
+| `required-version` | a versão do Ruff (a do `uv.lock` do projeto tem de bater; outra reprova) |
+| `select` explícito (sem `ALL`) | a união das famílias que os projetos usavam: pycodestyle, pyflakes, isort, naming, pyupgrade, bandit, bugbear, pylint, async, timezone, pathlib, Ruff, tryceratops, anotações, `TC`, FastAPI, Django, `noqa` sem código (`PGH004`) e sem uso (`RUF100`). Sem `FA`: `from __future__ import annotations` é proibido (Python 3.14, PEP 649) |
+| Limites | complexidade 12 (igual ao ESLint), `max-args` 5, `max-branches` 12, `max-returns` 6, `max-statements` 50 |
+| Runtime | Pydantic e rotas do FastAPI leem anotações em runtime: seus imports não vão para `TYPE_CHECKING` |
+| Exceções padrão | testes (assert, número mágico, fixture, tamanho); models do ORM (`TC001`–`TC003`, que o SQLAlchemy lê em runtime); migrations geradas |
+| `[format]` | aspas duplas, espaço, `lf` |
+
+Os hooks `ruff` e `ruff-format` do projeto são locais (`uv run --project <pacote> ruff ...`), para
+a versão do Ruff morar só no `uv.lock`.
+
+### Publicar uma versão do Ruff
+
+1. Mudar `ruff/base.toml` (e o `required-version`, se a versão do Ruff mudar).
+2. Commit e tag `ruff-vX.Y.Z` no mesmo commit, push da tag.
+3. Em cada projeto, trocar o `rev` do hook `ruff-base` e rodar o pre-commit (e o `uv lock` com o
+   Ruff novo, se o `required-version` mudou).
+
+## Pyright
+
+`pyright/pyrightconfig.json` é referência; os projetos ainda mantêm a própria configuração.

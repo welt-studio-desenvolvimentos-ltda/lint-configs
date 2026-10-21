@@ -10,7 +10,7 @@ target-version = "py314"
 line-length = 100
 # A versão do Ruff mora no `uv.lock` de cada projeto; esta linha reprova qualquer outra, para o
 # padrão nunca rodar com regras que ele não conhece.
-required-version = "==0.16.10"
+required-version = "==0.17.0"
 preview = true
 
 [lint]

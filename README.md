@@ -76,7 +76,7 @@ cópia, mantida por um hook de pre-commit deste repo:
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/lint-configs
-  rev: ruff-v1.0.0
+  rev: ruff-v1.0.1
   hooks:
     - id: ruff-base
 ```

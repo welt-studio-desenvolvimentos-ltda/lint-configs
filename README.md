@@ -8,7 +8,7 @@ Pacote em `eslint/`, instalado por tag do git (o repositório é público, entã
 precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 
 ```json
-"@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v2.0.0&path:/eslint"
+"@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v3.0.0&path:/eslint"
 ```
 
 O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`.
@@ -16,32 +16,24 @@ O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e 
 ```javascript
 // eslint.config.mjs
 import { weltConfig } from "@welt-studio/eslint-config";
-import reactRefresh from "eslint-plugin-react-refresh";
 
 export default weltConfig({
   tsconfigRootDir: import.meta.dirname,
-  files: ["src/**/*.{ts,tsx}"], // com tipo
-  untypedFiles: ["**/*.{js,mjs,cjs}", "vite.config.ts"], // fora de qualquer tsconfig
-  query: true, // projetos com TanStack Query
-  // complementos do projeto: plugins e regras que só existem ali (i18n, Next, react-refresh)
-  extend: [
-    {
-      files: ["src/**/*.tsx"],
-      plugins: { "react-refresh": reactRefresh },
-      rules: { "react-refresh/only-export-components": "error" },
-    },
-  ],
+  files: ["src/**/*.{ts,tsx}"], // com tipo (o que o tsconfig inclui)
+  framework: "vite", // "vite" | "next"; sem ele, pacote/biblioteca (globais do Node)
+  query: true, // usa TanStack Query
+  i18n: true, // produto traduzido
 });
 ```
 
-**O padrão é o mesmo em todos os projetos.** O projeto acrescenta o que só existe nele (plugin de
-framework, regra própria) por `extend`, mas não muda limite nem desliga regra do padrão. Mudar o
-padrão é mudar este pacote e publicar uma versão. O que entra por `extend` passa pela mesma
-conversão de aviso em erro e fica antes do Prettier.
+**O padrão é o mesmo em todos os projetos, e não existe regra exclusiva de projeto.** O arquivo do
+projeto só declara onde estão os arquivos e o que o projeto é (framework, TanStack Query,
+traduzido); limite, regra e plugin vêm daqui. Precisou de uma regra nova? Ela entra neste pacote,
+para todos, numa versão nova.
 
 `files` e `untypedFiles` não podem se sobrepor: um arquivo é lintado com tipo (está num `tsconfig`)
-ou sem tipo (scripts, configs de ferramenta, regras próprias em `.mjs`). Os sem tipo recebem o
-padrão inteiro menos as regras que exigem tipo, com os globais do Node.
+ou sem tipo (scripts, configs de ferramenta, `.mjs`). Os sem tipo (padrão `**/*.{js,jsx,mjs,cjs}`)
+recebem o padrão inteiro menos as regras que exigem tipo, com os globais do Node.
 
 `weltConfig` aplica, nesta ordem:
 
@@ -51,7 +43,9 @@ padrão inteiro menos as regras que exigem tipo, com os globais do Node.
 | `@eslint-react/eslint-plugin` (`recommended-type-checked`) | key ausente ou instável, contexto recriado a cada render, API do React usada errado (substitui o `eslint-plugin-react`, parado no ESLint 9). As regras que repetem as do plugin de hooks ficam só lá |
 | `eslint-plugin-react-hooks` (`recommended-latest`) | regras dos hooks e do React Compiler |
 | `eslint-plugin-jsx-a11y-x` (`recommended`) | acessibilidade (fork do `jsx-a11y` que suporta ESLint 10) |
+| `framework: "vite"` / `"next"` | globais do navegador; Fast Refresh (`eslint-plugin-react-refresh`); no Next, as regras `@next/next` (`core-web-vitals`) |
 | `@tanstack/eslint-plugin-query` (`query: true`) | chave de query incompleta, `QueryClient` instável |
+| `eslint-plugin-i18next` (`i18n: true`) | texto visível escrito direto no JSX (entre tags ou em atributo); vale para qualquer biblioteca de tradução, e o padrão dos projetos traduzidos é o `i18next` |
 | `eslint-comments` + `linterOptions` | `eslint-disable` de arquivo inteiro, sem regra ou sem motivo (`-- motivo`), e diretiva que não desliga nada |
 | Tamanho, complexidade e boas práticas | `complexity` 12, função 80 linhas, arquivo 400, `max-statements` 30, `max-params` 5, `max-depth` 4, `max-nested-callbacks` 3, boas práticas, ignores comuns |
 | Comentários | espaço depois de `//`, frase em maiúscula (menos quando começa com nome de código, como `hydrateRoot`), nenhum `TODO:`/`FIXME`/`HACK:` no código (vão para o débito técnico, parking lot ou roadmap) |

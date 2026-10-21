@@ -1,26 +1,28 @@
 /**
  * Configuração ESLint padrão da Welt Studio para os frontends em TypeScript.
  *
- * O padrão é um só para todos os projetos: o pacote exporta apenas `weltConfig`. O projeto declara
- * onde estão os arquivos e acrescenta, por `extend`, o que só existe nele (plugin de framework,
- * regra própria); nunca limite diferente nem regra do padrão desligada. Mudar o padrão é mudar este
- * pacote e publicar uma versão.
+ * O padrão é um só para todos os projetos: o pacote exporta apenas `weltConfig`. O projeto só
+ * declara onde estão os arquivos e o que ele é (framework, TanStack Query, traduzido); regra
+ * exclusiva de projeto não existe. Mudar o padrão é mudar este pacote e publicar uma versão.
  *
  *   import { weltConfig } from "@welt-studio/eslint-config";
  *   export default weltConfig({
  *     tsconfigRootDir: import.meta.dirname,
  *     files: ["src/**\/*.{ts,tsx}"],
+ *     framework: "vite",
  *     query: true,
- *     extend: [{ files: ["src/**\/*.tsx"], plugins: { ... }, rules: { ... } }],
  *   });
  */
 import js from "@eslint/js";
 import commentConfigs from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintReact from "@eslint-react/eslint-plugin";
+import nextPlugin from "@next/eslint-plugin-next";
 import pluginQuery from "@tanstack/eslint-plugin-query";
+import i18next from "eslint-plugin-i18next";
 import jsxA11y from "eslint-plugin-jsx-a11y-x";
 import prettierRecommended from "eslint-plugin-prettier/recommended";
 import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -149,11 +151,35 @@ const eslintReactWithoutHookTwins = (() => {
   return { ...config, rules };
 })();
 
+// O que depende do framework: Fast Refresh (o arquivo de componente só exporta componente, senão o
+// HMR recarrega a página) e, no Next, as regras do próprio Next. Os dois rodam no navegador.
+function frameworkConfigs(framework, files) {
+  if (framework === "vite") {
+    return [{ ...reactRefresh.configs.vite, files }];
+  }
+  if (framework === "next") {
+    return [
+      { ...reactRefresh.configs.next, files },
+      { ...nextPlugin.configs["core-web-vitals"], files },
+    ];
+  }
+  return [];
+}
+
+// Texto visível escrito direto no JSX (entre tags ou em atributo como `title`/`placeholder`) num
+// produto traduzido: sai do catálogo de mensagens. Só procura o literal, então vale para qualquer
+// biblioteca de tradução — o padrão dos projetos traduzidos é o `i18next`.
+const i18nConfig = (files) => ({
+  name: "welt/i18n",
+  files,
+  plugins: { i18next },
+  rules: { "i18next/no-literal-string": ["error", { mode: "jsx-only" }] },
+});
+
 const isWarn = (level) => level === "warn" || level === 1;
 
 // Aviso não existe no padrão: os projetos rodam com `--max-warnings=0`, então todo aviso já reprova.
-// Cada regra é erro ou está desligada, sem meio-termo que pareça opcional — inclusive nas que o
-// projeto acrescenta por `extend`.
+// Cada regra é erro ou está desligada, sem meio-termo que pareça opcional.
 function warningsAsErrors(config) {
   if (!config.rules) {
     return config;
@@ -181,20 +207,24 @@ function warningsAsErrors(config) {
  *   globais do Node
  * @param {boolean} [options.react] liga React (`@eslint-react`), React Hooks e acessibilidade
  *   (padrão: true)
+ * @param {"vite" | "next"} [options.framework] app de navegador: globais do navegador, Fast Refresh
+ *   e, no Next, as regras do Next. Sem ele, os arquivos com tipo recebem só os globais do Node
+ *   (pacote ou biblioteca)
  * @param {boolean} [options.query] liga as regras do TanStack Query (padrão: false)
+ * @param {boolean} [options.i18n] produto traduzido: texto visível no JSX só pelo catálogo
+ *   (padrão: false)
  * @param {string[]} [options.ignores] ignores do projeto (código gerado ou de terceiros), somados aos
  *   comuns
- * @param {object[]} [options.extend] complementos do projeto: plugins e regras que só existem ali,
- *   aplicados depois do padrão e antes do Prettier, com aviso convertido em erro
  */
 export function weltConfig({
   tsconfigRootDir,
   files = ["**/*.{ts,tsx}"],
-  untypedFiles = ["**/*.{js,mjs,cjs}"],
+  untypedFiles = ["**/*.{js,jsx,mjs,cjs}"],
   react = true,
+  framework,
   query = false,
+  i18n = false,
   ignores = [],
-  extend = [],
 }) {
   const scoped = (configs) => configs.map((config) => ({ ...config, files }));
   const formatted = [...files, ...untypedFiles];
@@ -215,7 +245,10 @@ export function weltConfig({
     {
       name: "welt/type-info",
       files,
-      languageOptions: { parserOptions: { projectService: true, tsconfigRootDir } },
+      languageOptions: {
+        globals: framework ? globals.browser : globals.node,
+        parserOptions: { projectService: true, tsconfigRootDir },
+      },
     },
     ...(react
       ? [
@@ -224,7 +257,9 @@ export function weltConfig({
           { ...jsxA11y.configs.recommended, files },
         ]
       : []),
+    ...frameworkConfigs(framework, files),
     ...(query ? scoped(pluginQuery.configs["flat/recommended"]) : []),
+    ...(i18n ? [i18nConfig(files)] : []),
     { name: "welt/rules", files, rules: { ...typescriptRules, ...untypedStandardRules } },
     // Fora do `tsconfig` não há informação de tipo: o TS entra com o `recommended` sem tipo, e o resto
     // do padrão vale igual. Nesses arquivos roda Node (scripts, configs de ferramenta).
@@ -238,7 +273,6 @@ export function weltConfig({
       rules: untypedStandardRules,
     },
     { name: "welt/tests", files: testFiles, rules: testRelaxedRules },
-    ...extend,
     // Prettier por último: formata como regra e desliga o que conflita com ele.
     { ...prettierRecommended, files: formatted },
     // O `eslint-config-prettier` desliga `curly`, mas na forma `all` ela não conflita com o Prettier

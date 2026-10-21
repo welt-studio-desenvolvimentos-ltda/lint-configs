@@ -49,10 +49,15 @@ select = [
     "FURB",    # refurb
     "BLE",     # except Exception cego
     "G",       # formato de logging
+    "LOG",     # uso do logging (ex.: logger.exception fora de except, que perde o traceback)
+    "ISC001",  # concatenação implícita de string na mesma linha
+    "ISC003",  # concatenação explícita (+) onde a implícita basta
+    "ISC004",  # concatenação implícita dentro de lista/tupla (vírgula esquecida). ISC002 fica
+               # fora: conflita com o formatter.
     "TRY",     # tryceratops
     "ANN",     # anotações de tipo
     "SLF",     # acesso a membro privado de fora da classe
-    "TC",      # imports só de tipo em TYPE_CHECKING
+    "TC",      # TYPE_CHECKING: import usado em runtime escondido lá (TC004) e afins
     "FAST",    # FastAPI (só dispara em código FastAPI)
     "DJ",      # Django (só dispara em código Django)
     "TID251",  # APIs proibidas ([lint.flake8-tidy-imports.banned-api])
@@ -63,6 +68,13 @@ ignore = [
     "S105", # hardcoded-password-string: falso positivo com o token type "bearer" do OAuth2
     "S106", # hardcoded-password-func-arg: idem
     "B008", # chamada em default de argumento: é como o FastAPI declara `Depends(...)`
+    # Mover import "só de tipo" para `TYPE_CHECKING`: no Python 3.14 a anotação já é avaliada só
+    # quando pedida (PEP 649), então quase não há ganho; e Pydantic, SQLAlchemy (`Mapped[...]`) e
+    # FastAPI (toda função num `Depends`) leem anotações em runtime — mover quebra o app. O
+    # contrário continua cobrado: TC004 (import usado em runtime dentro do `TYPE_CHECKING`).
+    "TC001",
+    "TC002",
+    "TC003",
     # Conflitam com o `ruff format` (docs.astral.sh/ruff/formatter/#conflicting-lint-rules).
     "W191",
     "E111",
@@ -82,9 +94,8 @@ max-returns = 6
 max-statements = 50
 
 [lint.flake8-type-checking]
-# O Pydantic e o FastAPI leem as anotações em runtime: um tipo usado só num campo de modelo ou na
-# assinatura de uma rota não pode ir para `TYPE_CHECKING` (o `--fix` do TC001/TC003 faria isso e
-# quebraria o app).
+# O Pydantic e as rotas do FastAPI leem as anotações em runtime: com isto, um tipo de campo ou de
+# rota importado só dentro de `TYPE_CHECKING` vira TC004 (quebraria o app ao subir).
 runtime-evaluated-base-classes = ["pydantic.BaseModel"]
 runtime-evaluated-decorators = [
     "fastapi.APIRouter.get",
@@ -97,18 +108,16 @@ runtime-evaluated-decorators = [
 [lint.flake8-tidy-imports.banned-api]
 "__future__.annotations".msg = "Python >=3.14 já adia a avaliação das anotações (PEP 649)."
 
+[lint.pep8-naming]
+# `@declared_attr` recebe a classe (`cls`): é como o SQLAlchemy declara coluna/relacionamento em
+# mixin. Sem isto, o N805 pediria `self`.
+classmethod-decorators = ["sqlalchemy.orm.declared_attr"]
+
 [lint.per-file-ignores]
 # Testes: assert, número mágico, fixture injetada e acesso a privado são o normal; tamanho não é
 # defeito (como os testes no ESLint). O resto do padrão vale.
-"**/tests/**/*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "C901"]
-"**/test_*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "C901"]
-# Models do ORM: o SQLAlchemy lê `Mapped[datetime]` em runtime ao montar o mapper, então o import
-# não pode ir para `TYPE_CHECKING` (quebra com `MappedAnnotationError`). Marcar a `Base` como
-# runtime não serve: o Ruff não segue a `Base` do projeto até o `DeclarativeBase`, e declarar a
-# `Base` acusaria TC004 nos relacionamentos. O conserto do TC é inseguro e o `--fix` não o aplica,
-# mas o erro falso ficaria.
-"**/models/**/*.py" = ["TC001", "TC002", "TC003"]
-"**/models.py" = ["TC001", "TC002", "TC003"]
+"**/tests/**/*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "PLR0917", "C901"]
+"**/test_*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "PLR0917", "C901"]
 # Migrations geradas pelo Alembic/Django: não são escritas à mão.
 "**/alembic/versions/**/*.py" = ["ALL"]
 "**/migrations/**/*.py" = ["ALL"]

@@ -12,6 +12,10 @@ line-length = 100
 # padrão nunca rodar com regras que ele não conhece.
 required-version = "==0.17.0"
 preview = true
+# Migrations geradas pelo Alembic/Django não são escritas à mão: ficam fora do lint e do format.
+# `force-exclude` faz valer também para arquivo passado pelo nome (é assim que o hook e a CI rodam).
+extend-exclude = ["**/alembic/versions/**", "**/migrations/**"]
+force-exclude = true
 
 [lint]
 # Preview só nas regras pedidas pelo código (não liga as de preview das famílias abaixo).
@@ -118,9 +122,6 @@ classmethod-decorators = ["sqlalchemy.orm.declared_attr"]
 # defeito (como os testes no ESLint). O resto do padrão vale.
 "**/tests/**/*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "PLR0917", "C901"]
 "**/test_*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "PLR0917", "C901"]
-# Migrations geradas pelo Alembic/Django: não são escritas à mão.
-"**/alembic/versions/**/*.py" = ["ALL"]
-"**/migrations/**/*.py" = ["ALL"]
 
 [format]
 quote-style = "double"

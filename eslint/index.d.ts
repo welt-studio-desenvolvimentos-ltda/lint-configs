@@ -14,13 +14,18 @@ export interface WeltConfigOptions {
   /** Liga React (`@eslint-react`), React Hooks e acessibilidade. Padrão: `true`. */
   react?: boolean;
   /**
-   * App de navegador: globais do navegador, Fast Refresh e, no Next, as regras do Next. Sem ele, os
-   * arquivos com tipo recebem só os globais do Node (pacote ou biblioteca).
+   * App Vite: no código do app, globais do navegador e Fast Refresh; as configs de ferramenta
+   * (`*.config.ts`) ficam com os do Node. Sem ele, os arquivos com tipo recebem os globais do Node
+   * (pacote ou biblioteca).
    */
-  framework?: "vite" | "next";
+  framework?: "vite";
   /** Liga as regras do TanStack Query. Padrão: `false`. */
   query?: boolean;
-  /** Produto traduzido: texto visível no JSX só pelo catálogo de mensagens. Padrão: `false`. */
+  /**
+   * Produto traduzido: texto no JSX (entre tags ou em atributo que não seja código, como rota,
+   * `data-*`, ícone e classe) e texto de toast só pelo catálogo de mensagens. Testes ficam de fora.
+   * Padrão: `false`.
+   */
   i18n?: boolean;
   /** Ignores do projeto (código gerado ou de terceiros), somados aos comuns. */
   ignores?: string[];

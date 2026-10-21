@@ -16,7 +16,6 @@
 import js from "@eslint/js";
 import commentConfigs from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintReact from "@eslint-react/eslint-plugin";
-import nextPlugin from "@next/eslint-plugin-next";
 import pluginQuery from "@tanstack/eslint-plugin-query";
 import i18next from "eslint-plugin-i18next";
 import jsxA11y from "eslint-plugin-jsx-a11y-x";
@@ -151,30 +150,98 @@ const eslintReactWithoutHookTwins = (() => {
   return { ...config, rules };
 })();
 
-// O que depende do framework: Fast Refresh (o arquivo de componente só exporta componente, senão o
-// HMR recarrega a página) e, no Next, as regras do próprio Next. Os dois rodam no navegador.
+// Configs de ferramenta (`vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`): estão no
+// `tsconfig`, mas rodam no Node, não no app. Ficam fora do que o `framework` liga.
+const toolConfigFiles = ["**/*.config.{ts,mts,cts}"];
+
+// App Vite: o código do app roda no navegador, e o Fast Refresh exige que arquivo de componente só
+// exporte componente (senão o HMR recarrega a página).
 function frameworkConfigs(framework, files) {
-  if (framework === "vite") {
-    return [{ ...reactRefresh.configs.vite, files }];
+  if (framework !== "vite") {
+    return [];
   }
-  if (framework === "next") {
-    return [
-      { ...reactRefresh.configs.next, files },
-      { ...nextPlugin.configs["core-web-vitals"], files },
-    ];
-  }
-  return [];
+  return [
+    {
+      name: "welt/app-globals",
+      files,
+      ignores: toolConfigFiles,
+      languageOptions: { globals: globals.browser },
+    },
+    { ...reactRefresh.configs.vite, files, ignores: toolConfigFiles },
+  ];
 }
 
-// Texto visível escrito direto no JSX (entre tags ou em atributo como `title`/`placeholder`) num
-// produto traduzido: sai do catálogo de mensagens. Só procura o literal, então vale para qualquer
-// biblioteca de tradução — o padrão dos projetos traduzidos é o `i18next`.
-const i18nConfig = (files) => ({
-  name: "welt/i18n",
-  files,
-  plugins: { i18next },
-  rules: { "i18next/no-literal-string": ["error", { mode: "jsx-only" }] },
-});
+// Atributos que são código, não texto de tela: rota, id de teste, nome de ícone, classe, cor, valor
+// de formulário, SVG. Todo o resto é cobrado — prop de componente nova (`badge`, `unit`, `detail`)
+// é texto até prova em contrário, porque erro a mais aparece e erro a menos passa calado. Os
+// padrões casam o nome inteiro; os `aria-*` que o leitor de tela lê continuam cobrados.
+const codeAttributes = [
+  // Os do próprio plugin (o `exclude` da opção substitui o padrão dele).
+  "className",
+  "styleName",
+  "style",
+  "type",
+  "key",
+  "id",
+  "width",
+  "height",
+  "\\w*(ClassName|Class|Color|Icon|Id)",
+  "data-[\\w-]+",
+  "testId",
+  "aria-(?!label$|description$|roledescription$|valuetext$|placeholder$)[\\w-]+",
+  "role",
+  // `action` fica cobrado: em componente é rótulo de botão (`action="Ver vendas"`), e o `action` do
+  // `<form>` no React 19 é função.
+  "(href|to|src|srcSet)",
+  "[a-z]\\w*(To|Href|Url|Path|Src)",
+  // `value` fica cobrado: no `<SelectItem>` é código, mas em componente de exibição
+  // (`<Metric value="3 Models">`) é texto de tela.
+  "(htmlFor|form|name|accept|autoComplete|inputMode|pattern|rel|target|method)",
+  "(icon|layoutId|variant|size|side|align|orientation|mode|slot|as|lang|dir|loading|decoding|sizes)",
+  "(viewBox|d|fill|stroke|xmlns|transform|points|cx|cy|r|x|y|x1|x2|y1|y2|clipPath|mask)",
+  "(fill|stroke|clip|font|text)[A-Z]\\w*",
+];
+
+// Toast é texto visível fora do JSX, que a regra do i18next (no modo só-JSX) não vê: `toast("…")`,
+// `toast.error("…")` e `description`/`title` nas opções dele. Casa só as chamadas que mostram
+// mensagem — `toast.dismiss("upload-id")` recebe um id, não texto.
+const TOAST_CALL =
+  'CallExpression:matches([callee.name="toast"], [callee.object.name="toast"][callee.property.name=/^(success|error|info|warning|loading|message)$/])';
+const TOAST_MESSAGE = "Texto do toast vem do catálogo de mensagens (t(...)), não escrito direto.";
+const toastLiteralRule = [
+  "error",
+  ...[
+    `${TOAST_CALL} > Literal[value=/\\S/]`,
+    `${TOAST_CALL} > TemplateLiteral`,
+    `${TOAST_CALL} > ObjectExpression > Property[key.name=/^(title|description)$/] > :matches(Literal[value=/\\S/], TemplateLiteral)`,
+    // `toast.promise(p, { loading: "…", success: "…", error: "…" })`
+    'CallExpression[callee.object.name="toast"][callee.property.name="promise"] > ObjectExpression > Property[key.name=/^(loading|success|error|description)$/] > :matches(Literal[value=/\\S/], TemplateLiteral)',
+  ].map((selector) => ({ selector, message: TOAST_MESSAGE })),
+];
+
+// Texto visível escrito direto no JSX (entre tags ou em atributo visível) ou num toast, num produto
+// traduzido: sai do catálogo de mensagens. Só procura o literal, então vale para qualquer biblioteca
+// de tradução — o padrão dos projetos traduzidos é o `i18next`. Teste escreve o texto esperado
+// direto, então fica de fora.
+const i18nConfigs = (files) => [
+  {
+    name: "welt/i18n",
+    files,
+    plugins: { i18next },
+    rules: {
+      "i18next/no-literal-string": [
+        "error",
+        { mode: "jsx-only", "jsx-attributes": { exclude: codeAttributes } },
+      ],
+      "no-restricted-syntax": toastLiteralRule,
+    },
+  },
+  {
+    name: "welt/i18n-tests",
+    files: testFiles,
+    rules: { "i18next/no-literal-string": "off", "no-restricted-syntax": "off" },
+  },
+];
 
 const isWarn = (level) => level === "warn" || level === 1;
 
@@ -207,9 +274,9 @@ function warningsAsErrors(config) {
  *   globais do Node
  * @param {boolean} [options.react] liga React (`@eslint-react`), React Hooks e acessibilidade
  *   (padrão: true)
- * @param {"vite" | "next"} [options.framework] app de navegador: globais do navegador, Fast Refresh
- *   e, no Next, as regras do Next. Sem ele, os arquivos com tipo recebem só os globais do Node
- *   (pacote ou biblioteca)
+ * @param {"vite"} [options.framework] app Vite: no código do app, globais do navegador e Fast
+ *   Refresh; as configs de ferramenta (`*.config.ts`) ficam com os do Node. Sem ele, os arquivos
+ *   com tipo recebem os globais do Node (pacote ou biblioteca)
  * @param {boolean} [options.query] liga as regras do TanStack Query (padrão: false)
  * @param {boolean} [options.i18n] produto traduzido: texto visível no JSX só pelo catálogo
  *   (padrão: false)
@@ -228,6 +295,11 @@ export function weltConfig({
 }) {
   const scoped = (configs) => configs.map((config) => ({ ...config, files }));
   const formatted = [...files, ...untypedFiles];
+  // Config de ferramenta que está entre os arquivos com tipo: no flat config, um array dentro de
+  // `files` exige que todos os padrões dele casem.
+  const typedToolConfigs = files.flatMap((pattern) =>
+    toolConfigFiles.map((toolConfig) => [pattern, toolConfig]),
+  );
 
   const configs = [
     { name: "welt/ignores", ignores: [...commonIgnores, ...ignores] },
@@ -245,10 +317,15 @@ export function weltConfig({
     {
       name: "welt/type-info",
       files,
-      languageOptions: {
-        globals: framework ? globals.browser : globals.node,
-        parserOptions: { projectService: true, tsconfigRootDir },
-      },
+      languageOptions: { parserOptions: { projectService: true, tsconfigRootDir } },
+    },
+    // Globais do Node em pacote e biblioteca; no app Vite, só nas configs de ferramenta (o código do
+    // app recebe os do navegador em `frameworkConfigs`). Os globais de configs diferentes se somam,
+    // por isso cada arquivo recebe um conjunto só.
+    {
+      name: "welt/node-globals",
+      files: framework === "vite" ? typedToolConfigs : files,
+      languageOptions: { globals: globals.node },
     },
     ...(react
       ? [
@@ -259,7 +336,7 @@ export function weltConfig({
       : []),
     ...frameworkConfigs(framework, files),
     ...(query ? scoped(pluginQuery.configs["flat/recommended"]) : []),
-    ...(i18n ? [i18nConfig(files)] : []),
+    ...(i18n ? i18nConfigs(files) : []),
     { name: "welt/rules", files, rules: { ...typescriptRules, ...untypedStandardRules } },
     // Fora do `tsconfig` não há informação de tipo: o TS entra com o `recommended` sem tipo, e o resto
     // do padrão vale igual. Nesses arquivos roda Node (scripts, configs de ferramenta).

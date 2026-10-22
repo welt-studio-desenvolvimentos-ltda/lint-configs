@@ -1,0 +1,20 @@
+# Pacote instalado pelo pre-commit para o hook `versions` (`language: python`). Só ele precisa de
+# dependência (PyYAML, para ler os YAML do projeto); o `ruff-base` é script sem dependências.
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "welt-lint-configs"
+version = "1.0.0"
+requires-python = ">=3.11"
+dependencies = ["pyyaml==6.0.3"]
+
+[project.scripts]
+welt-versions = "versions.check:main"
+
+[tool.setuptools]
+packages = ["versions"]
+
+[tool.setuptools.package-data]
+versions = ["versions.toml"]

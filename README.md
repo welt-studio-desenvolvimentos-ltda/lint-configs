@@ -116,6 +116,48 @@ a versão do Ruff morar só no `uv.lock`.
 3. Em cada projeto, trocar o `rev` do hook `ruff-base` e rodar o pre-commit (e o `uv lock` com o
    Ruff novo, se o `required-version` mudou).
 
+## Versões: `versions/versions.toml` pelo hook `versions`
+
+Uma tabela só para as ferramentas de todos os projetos: Python, Node, pnpm, uv, as ferramentas de
+frontend (TypeScript, ESLint, Prettier, Vite, Vitest, Knip, jscpd, `@types/node`), as de Python
+(pytest, Pyright), o pre-commit e os hooks remotos, as Actions do GitHub (por SHA) e a idade mínima
+de uma versão para entrar no install.
+
+```yaml
+# .pre-commit-config.yaml
+- repo: https://github.com/welt-studio/lint-configs
+  rev: versions-v1.0.0
+  hooks:
+    - id: versions
+      args: [--exclude, "_reference/**"] # só para código de terceiros vendorizado
+```
+
+O hook reprova o que divergir da tabela, com o arquivo e o valor esperado:
+
+| Onde | O que confere |
+|---|---|
+| `package.json` da raiz do workspace | `packageManager` (pnpm) e `devEngines.runtime` (Node) |
+| `pnpm-workspace.yaml` | `catalog` com a versão exata de cada ferramenta usada; `minimumReleaseAge` |
+| todo `package.json` do workspace | ferramenta da tabela só como `catalog:` (uma declaração por projeto) |
+| `pyproject.toml` e `requirements*.txt` | `requires-python`, `[tool.uv] required-version`, pins exatos de pytest e Pyright; `.python-version` ao lado |
+| `.pre-commit-config.yaml` | hooks remotos só os da tabela, no `rev` dela; sem `default_language_version.node` |
+| workflows e actions locais | Actions só as da tabela, pelo SHA dela; `uvx pre-commit@` na versão dela; nenhum `node-version`/`python-version` escrito (o `pnpm/setup` lê o `devEngines` e o uv lê o `.python-version`) |
+| `.github/dependabot.yml` | existe; todo ecossistema com `cooldown.default-days` igual à trava do pnpm e `ignore` das ferramentas da tabela |
+| `Dockerfile*` | imagens `python`, `node` e `ghcr.io/pnpm/pnpm` na versão exata |
+
+**Política:** a versão mais nova com pelo menos 7 dias de publicada. O Dependabot de cada projeto não
+sobe as ferramentas da tabela (senão a CI reprovaria a PR dele); elas sobem aqui, para todos ao
+mesmo tempo. O resto das dependências (React, Django, FastAPI...) continua com o Dependabot.
+Atualização de segurança de uma ferramenta da tabela também passa por aqui.
+
+### Publicar uma versão da tabela
+
+1. Mudar `versions/versions.toml` (e o corte de data no topo).
+2. Rodar os testes: `uvx --with pyyaml==6.0.3 pytest@9.1.1 versions`.
+3. Commit e tag `versions-vX.Y.Z` no mesmo commit, push da tag.
+4. Em cada projeto, trocar o `rev` do hook `versions`, aplicar o que ele apontar e rodar
+   `pnpm install` e `uv lock`.
+
 ## Pyright
 
 `pyright/pyrightconfig.json` é referência; os projetos ainda mantêm a própria configuração.

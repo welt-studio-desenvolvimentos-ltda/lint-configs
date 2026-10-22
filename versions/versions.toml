@@ -61,7 +61,10 @@ version = "4.7.0"
 "appleboy/ssh-action" = { version = "v1.2.5", sha = "0ff4204d59e8e51228ff73bce53f80d53301dee2" }
 "appleboy/scp-action" = { version = "v1.0.0", sha = "ff85246acaad7bdce478db94a363cd2bf7c90345" }
 "Swatinem/rust-cache" = { version = "v2.9.2", sha = "6323deb102c322ba6fcbdcafc7e3dddab59af2b6" }
-"rustsec/audit-check" = { version = "v2.0.0", sha = "69366f33c96575abad1ee0dba8212993eecbe998" }
+# Exceção à regra da release: a v2.0.0 (2024) roda em Node 20, que o GitHub está tirando dos
+# runners, e a migração para Node 24 (rustsec/audit-check#48, 2026-03-20) ainda não tem tag. Fica
+# no commit do `main`; volta para uma tag quando sair uma release.
+"rustsec/audit-check" = { version = "main 2026-03-20 (node24)", sha = "858dc40f52ca2b8570b7a997c1c4e35c6fc9a432" }
 
 [supply-chain]
 # Idade mínima de uma versão para entrar no install: `minimumReleaseAge` do pnpm (em minutos) e

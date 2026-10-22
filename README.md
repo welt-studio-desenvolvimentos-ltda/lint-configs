@@ -143,7 +143,7 @@ O hook reprova o que divergir da tabela, com o arquivo e o valor esperado:
 | `.pre-commit-config.yaml` | hooks remotos só os da tabela, no `rev` dela; sem `default_language_version.node` |
 | workflows e actions locais | Actions só as da tabela, pelo SHA dela; `uvx pre-commit@` na versão dela; nenhum `node-version`/`python-version` escrito (o `pnpm/setup` lê o `devEngines` e o uv lê o `.python-version`) |
 | `.github/dependabot.yml` | existe; todo ecossistema com `cooldown.default-days` igual à trava do pnpm e `ignore` das ferramentas da tabela |
-| `Dockerfile*` | imagens `python`, `node` e `ghcr.io/pnpm/pnpm` na versão exata |
+| `Dockerfile*` | imagens `python`, `node`, `ghcr.io/pnpm/pnpm` e `ghcr.io/astral-sh/uv` na versão exata, no `FROM` e no `COPY --from=` (no `ignore` do Dependabot elas vão sem o host: `pnpm/pnpm`, `astral-sh/uv`) |
 
 **Política:** a versão mais nova com pelo menos 7 dias de publicada. O Dependabot de cada projeto não
 sobe as ferramentas da tabela (senão a CI reprovaria a PR dele); elas sobem aqui, para todos ao

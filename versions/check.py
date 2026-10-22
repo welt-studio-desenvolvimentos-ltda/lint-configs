@@ -26,12 +26,13 @@ NPM_ECOSYSTEMS = {"npm"}
 PYTHON_ECOSYSTEMS = {"uv", "pip"}
 # O Ruff é governado pelo `required-version` do `ruff-base.toml`: o Dependabot também não o sobe.
 PYTHON_EXTRA_IGNORES = ("ruff",)
-DOCKER_IMAGES = {"python": "python", "node": "node", "ghcr.io/pnpm/pnpm": "pnpm"}
+DOCKER_IMAGES = {"python": "python", "node": "node", "ghcr.io/pnpm/pnpm": "pnpm", "ghcr.io/astral-sh/uv": "uv"}
 REQUIREMENT = re.compile(r"^\s*([A-Za-z0-9_.-]+)(\[[^\]]*\])?\s*(.*)$")
 USES = re.compile(r"^\s*-?\s*uses:\s*['\"]?([^\s'\"#]+)")
 UVX_PRE_COMMIT = re.compile(r"pre-commit@([0-9][0-9.]*)")
 LITERAL_RUNTIME = re.compile(r"^\s*(node-version|python-version):\s*['\"]?\d")
 FROM_LINE = re.compile(r"^\s*FROM\s+(?:--platform=\S+\s+)?(\S+)", re.IGNORECASE)
+COPY_FROM = re.compile(r"^\s*COPY\s+(?:--\S+\s+)*--from=(\S+)", re.IGNORECASE)
 ARG_LINE = re.compile(r"^\s*ARG\s+(\w+)=(\S+)", re.IGNORECASE)
 
 
@@ -232,6 +233,12 @@ def check_workflow(root: Path, path: PurePosixPath, t: Table) -> list[str]:
     return errors
 
 
+def dependabot_image_name(image: str) -> str:
+    """Nome que o Dependabot dá a uma imagem: sem o host do registry (`ghcr.io/pnpm/pnpm` → `pnpm/pnpm`)."""
+    first, _, rest = image.partition("/")
+    return rest if rest and ("." in first or ":" in first or first == "localhost") else image
+
+
 def check_dependabot(root: Path, path: PurePosixPath, t: Table) -> list[str]:
     """Cooldown igual à trava do pnpm e as ferramentas governadas fora do robô."""
     errors: list[str] = []
@@ -239,7 +246,7 @@ def check_dependabot(root: Path, path: PurePosixPath, t: Table) -> list[str]:
         "npm": set(t.npm),
         "python": set(t.python) | set(PYTHON_EXTRA_IGNORES),
         "github-actions": set(t.actions),
-        "docker": set(DOCKER_IMAGES),
+        "docker": {dependabot_image_name(i) for i in DOCKER_IMAGES},
     }
     for update in read_yaml(root / path).get("updates") or []:
         ecosystem = update.get("package-ecosystem")
@@ -256,14 +263,14 @@ def check_dependabot(root: Path, path: PurePosixPath, t: Table) -> list[str]:
 
 
 def check_dockerfile(root: Path, path: PurePosixPath, t: Table) -> list[str]:
-    """Imagem base de Python, Node e pnpm na versão exata da tabela."""
+    """Imagens de Python, Node, pnpm e uv (no `FROM` ou no `COPY --from=`) na versão exata da tabela."""
     errors: list[str] = []
     args: dict[str, str] = {}
     for number, line in enumerate((root / path).read_text(encoding="utf-8").splitlines(), 1):
         if arg := ARG_LINE.match(line):
             args[arg.group(1)] = arg.group(2)
             continue
-        found = FROM_LINE.match(line)
+        found = FROM_LINE.match(line) or COPY_FROM.match(line)
         if not found:
             continue
         image, _, tag = found.group(1).partition(":")

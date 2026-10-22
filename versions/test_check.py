@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from versions.check import Table, check
+from versions.check import DOCKER_IMAGES, Table, check, dependabot_image_name
 
 T = Table.load()
 MINOR = T.python_minor
@@ -22,6 +22,7 @@ def aligned_files() -> dict[str, str]:
     npm_ignores = "".join(f"      - dependency-name: '{n}'\n" for n in T.npm)
     py_ignores = "".join(f"      - dependency-name: '{n}'\n" for n in [*T.python, "ruff"])
     action_ignores = "".join(f"      - dependency-name: '{n}'\n" for n in T.actions)
+    image_ignores = "".join(f"      - dependency-name: '{dependabot_image_name(n)}'\n" for n in DOCKER_IMAGES)
     repos = "".join(f"  - repo: {url}\n    rev: {rev}\n    hooks: [{{id: x}}]\n" for url, rev in T.pre_commit_repos.items())
     return {
         "package.json": json.dumps(
@@ -46,7 +47,10 @@ def aligned_files() -> dict[str, str]:
             f"[tool.uv]\nrequired-version = '=={T.runtimes['uv']}'\n"
         ),
         "api/.python-version": T.runtimes["python"] + "\n",
-        "api/Dockerfile": f"ARG PY={T.runtimes['python']}\nFROM python:${{PY}}-slim AS base\nFROM base AS prod\n",
+        "api/Dockerfile": (
+            f"ARG PY={T.runtimes['python']}\nFROM python:${{PY}}-slim AS base\n"
+            f"COPY --from=ghcr.io/astral-sh/uv:{T.runtimes['uv']} /uv /bin/\nFROM base AS prod\n"
+        ),
         ".pre-commit-config.yaml": (
             "repos:\n"
             "  - repo: https://github.com/welt-studio/lint-configs\n    rev: versions-v9\n    hooks: [{id: versions}]\n"
@@ -66,6 +70,7 @@ def aligned_files() -> dict[str, str]:
             f"  - package-ecosystem: npm\n    directory: /\n    cooldown: {{default-days: {T.release_age_days}}}\n    ignore:\n{npm_ignores}"
             f"  - package-ecosystem: uv\n    directory: /api\n    cooldown: {{default-days: {T.release_age_days}}}\n    ignore:\n{py_ignores}"
             f"  - package-ecosystem: github-actions\n    directory: /\n    cooldown: {{default-days: {T.release_age_days}}}\n    ignore:\n{action_ignores}"
+            f"  - package-ecosystem: docker\n    directory: /api\n    cooldown: {{default-days: {T.release_age_days}}}\n    ignore:\n{image_ignores}"
         ),
         "_reference/old/package.json": json.dumps({"devDependencies": {"vite": "^7.1.9"}}),
     }
@@ -140,6 +145,20 @@ def test_excluded_reference_folder_is_not_checked(tmp_path: Path) -> None:
             {"api/Dockerfile": "FROM python:3.14-slim\n"},
             "python deve estar na versão",
             id="docker-image",
+        ),
+        pytest.param(
+            {"api/Dockerfile": "FROM python:3.14.8-slim\nCOPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/\n"},
+            "ghcr.io/astral-sh/uv deve estar na versão",
+            id="uv-image-latest",
+        ),
+        pytest.param(
+            {
+                ".github/dependabot.yml": aligned_files()[".github/dependabot.yml"].replace(
+                    "      - dependency-name: 'pnpm/pnpm'\n", "      - dependency-name: 'ghcr.io/pnpm/pnpm'\n"
+                )
+            },
+            "faltam pnpm/pnpm",
+            id="dependabot-image-name-without-registry",
         ),
         pytest.param(
             {".pre-commit-config.yaml": aligned_files()[".pre-commit-config.yaml"].replace("v6.0.0", "v5.0.0")},

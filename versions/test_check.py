@@ -161,6 +161,16 @@ def test_excluded_reference_folder_is_not_checked(tmp_path: Path) -> None:
             id="dependabot-image-name-without-registry",
         ),
         pytest.param(
+            {
+                ".github/dependabot.yml": aligned_files()[".github/dependabot.yml"].replace(
+                    "      - dependency-name: 'pnpm/pnpm'\n",
+                    "      - dependency-name: 'pnpm/pnpm'\n      - dependency-name: 'ghcr.io/pnpm/pnpm'\n",
+                )
+            },
+            "ignore ghcr.io/pnpm/pnpm não casa com nada",
+            id="dependabot-image-name-with-registry-left-over",
+        ),
+        pytest.param(
             {".pre-commit-config.yaml": aligned_files()[".pre-commit-config.yaml"].replace("v6.0.0", "v5.0.0")},
             "pre-commit-hooks deve estar no rev",
             id="hook-rev",

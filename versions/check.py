@@ -259,6 +259,10 @@ def check_dependabot(root: Path, path: PurePosixPath, t: Table) -> list[str]:
         missing = sorted(governed.get(kind, set()) - ignored)
         if missing:
             errors.append(f"{label}: ignore deve listar as ferramentas da tabela: faltam {', '.join(missing)}")
+        if kind == "docker":
+            # Com o host do registry o Dependabot não casa o nome, e a entrada não ignora nada.
+            for name in sorted(n for n in ignored if n and dependabot_image_name(n) != n):
+                errors.append(f"{label}: ignore {name} não casa com nada; o Dependabot usa {dependabot_image_name(name)}")
     return errors
 
 

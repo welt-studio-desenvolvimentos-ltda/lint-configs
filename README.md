@@ -99,7 +99,7 @@ vêm do base; precisou de regra nova, ela entra aqui, para todos, numa tag nova.
 
 | Bloco | O que fixa |
 |---|---|
-| `required-version` | a versão do Ruff (a do `uv.lock` do projeto tem de bater; outra reprova) |
+| `required-version` | a versão mínima do Ruff, a primeira que conhece todas as regras do padrão. A exata é a do `uv.lock` do projeto. Sem `preview`, porque uma versão patch do Ruff pode mudar o que está em preview |
 | `select` explícito (sem `ALL`) | a união das famílias que os projetos usavam: pycodestyle, pyflakes, isort, naming, pyupgrade, bandit, bugbear, pylint, async, timezone, pathlib, Ruff, tryceratops, logging (`LOG`), concatenação de string (`ISC001`/`ISC003`/`ISC004`), anotações, `TC`, FastAPI, Django, `noqa` sem código (`PGH004`) e sem uso (`RUF100`). Sem `FA`: `from __future__ import annotations` é proibido (Python 3.14, PEP 649) |
 | Limites | complexidade 12 (igual ao ESLint), `max-args` 5, `max-branches` 12, `max-returns` 6, `max-statements` 50 |
 | Runtime | `TC001`–`TC003` desligadas: no Python 3.14 mover import "só de tipo" para `TYPE_CHECKING` quase não ganha nada, e Pydantic, SQLAlchemy e FastAPI leem anotações em runtime. Fica o contrário (`TC004`: import de runtime escondido em `TYPE_CHECKING`), com Pydantic e rotas do FastAPI marcados como runtime |
@@ -109,12 +109,18 @@ vêm do base; precisou de regra nova, ela entra aqui, para todos, numa tag nova.
 Os hooks `ruff` e `ruff-format` do projeto são locais (`uv run --project <pacote> ruff ...`), para
 a versão do Ruff morar só no `uv.lock`.
 
-### Publicar uma versão do Ruff
+### Publicar uma versão do padrão
 
-1. Mudar `ruff/base.toml` (e o `required-version`, se a versão do Ruff mudar).
+1. Mudar `ruff/base.toml`. O `required-version` só sobe quando o padrão passa a usar uma regra que
+   a versão mínima atual não conhece.
 2. Commit e tag `ruff-vX.Y.Z` no mesmo commit, push da tag.
-3. Em cada projeto, trocar o `rev` do hook `ruff-base` e rodar o pre-commit (e o `uv lock` com o
-   Ruff novo, se o `required-version` mudou).
+3. Em cada projeto, trocar o `rev` do hook `ruff-base` e rodar o pre-commit.
+
+### Subir o Ruff num projeto
+
+É só o projeto: o pin `ruff==` do `pyproject.toml` e o `uv lock`, sem tag aqui. O Ruff novo pode
+mudar o resultado do lint ou do format (as versões minor promovem regras e mudam o estilo estável),
+e isso aparece na CI do próprio PR.
 
 ## Versões: `versions/versions.toml` pelo hook `versions`
 

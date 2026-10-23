@@ -24,7 +24,8 @@ LINT_CONFIGS_REPO = "https://github.com/welt-studio/lint-configs"
 DEP_FIELDS = ("dependencies", "devDependencies", "optionalDependencies")
 NPM_ECOSYSTEMS = {"npm"}
 PYTHON_ECOSYSTEMS = {"uv", "pip"}
-# O Ruff é governado pelo `required-version` do `ruff-base.toml`: o Dependabot também não o sobe.
+# O Ruff sobe pelo pin do próprio projeto, que o `ruff-base.toml` só limita por baixo
+# (`required-version`); o Dependabot não o sobe.
 PYTHON_EXTRA_IGNORES = ("ruff",)
 DOCKER_IMAGES = {"python": "python", "node": "node", "ghcr.io/pnpm/pnpm": "pnpm", "ghcr.io/astral-sh/uv": "uv"}
 REQUIREMENT = re.compile(r"^\s*([A-Za-z0-9_.-]+)(\[[^\]]*\])?\s*(.*)$")

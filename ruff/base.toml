@@ -8,18 +8,16 @@
 
 target-version = "py314"
 line-length = 100
-# A versão do Ruff mora no `uv.lock` de cada projeto; esta linha reprova qualquer outra, para o
-# padrão nunca rodar com regras que ele não conhece.
-required-version = "==0.17.1"
-preview = true
+# A versão exata do Ruff mora no `uv.lock` de cada projeto. Aqui fica só o piso: a primeira versão
+# que conhece todas as regras do `select`. Regra nova que exija um Ruff mais novo sobe o piso. Sem
+# `preview`: no Ruff, uma versão patch pode mudar o que está em preview.
+required-version = ">=0.17.1"
 # Migrations geradas pelo Alembic/Django não são escritas à mão: ficam fora do lint e do format.
 # `force-exclude` faz valer também para arquivo passado pelo nome (é assim que o hook e a CI rodam).
 extend-exclude = ["**/alembic/versions/**", "**/migrations/**"]
 force-exclude = true
 
 [lint]
-# Preview só nas regras pedidas pelo código (não liga as de preview das famílias abaixo).
-explicit-preview-rules = true
 # Lista explícita, sem `ALL`: subir o Ruff não liga regra nova sozinho.
 select = [
     "E",       # pycodestyle errors

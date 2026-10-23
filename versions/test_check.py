@@ -64,7 +64,10 @@ def aligned_files() -> dict[str, str]:
             f"      - uses: pnpm/setup@{setup['sha']}\n"
             "      - uses: ./.github/actions/local\n"
             f"      - run: uvx pre-commit@{T.pre_commit_version} run --all-files\n"
+            f"      - run: uvx pip-audit@{T.uvx['pip-audit']} --strict -r requirements.txt\n"
         ),
+        "Makefile": f"audit:\n\t@uvx pip-audit@{T.uvx['pip-audit']} --strict -r req.txt\n",
+        "scripts/audit.sh": f"uv run --with pip-audit=={T.uvx['pip-audit']} pip-audit\n",
         ".github/dependabot.yml": (
             "version: 2\nupdates:\n"
             f"  - package-ecosystem: npm\n    directory: /\n    cooldown: {{default-days: {T.release_age_days}}}\n    ignore:\n{npm_ignores}"
@@ -214,6 +217,21 @@ def test_excluded_reference_folder_is_not_checked(tmp_path: Path) -> None:
             {".github/workflows/ci.yml": "steps:\n  - run: uvx pre-commit@4.6.0 run\n"},
             "pre-commit@4.6.0 deve ser",
             id="pre-commit-version",
+        ),
+        pytest.param(
+            {".github/workflows/ci.yml": "steps:\n  - run: uvx pip-audit --strict\n"},
+            "uvx pip-audit@(sem versão) deve ser",
+            id="uvx-tool-unpinned",
+        ),
+        pytest.param(
+            {"Makefile": "audit:\n\t@uvx --python 3.14 pip-audit@2.9.0\n"},
+            "uvx pip-audit@2.9.0 deve ser",
+            id="uvx-tool-version-in-makefile",
+        ),
+        pytest.param(
+            {"scripts/audit.sh": "uv run --with pip-audit pip-audit --strict\n"},
+            "--with pip-audit==(sem versão) deve ser",
+            id="with-tool-unpinned-in-script",
         ),
         pytest.param(
             {".github/dependabot.yml": aligned_files()[".github/dependabot.yml"].replace("default-days: 7", "default-days: 3", 1)},

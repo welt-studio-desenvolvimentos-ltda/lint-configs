@@ -120,13 +120,13 @@ a versão do Ruff morar só no `uv.lock`.
 
 Uma tabela só para as ferramentas de todos os projetos: Python, Node, pnpm, uv, as ferramentas de
 frontend (TypeScript, ESLint, Prettier, Vite, Vitest, Knip, jscpd, `@types/node`), as de Python
-(pytest, Pyright), o pre-commit e os hooks remotos, as Actions do GitHub (por SHA) e a idade mínima
+(pytest, Pyright), o pre-commit e os hooks remotos, as ferramentas rodadas por `uvx` (pip-audit), as Actions do GitHub (por SHA) e a idade mínima
 de uma versão para entrar no install.
 
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/lint-configs
-  rev: versions-v1.0.0
+  rev: versions-v1.1.0
   hooks:
     - id: versions
       args: [--exclude, "_reference/**"] # só para código de terceiros vendorizado
@@ -143,6 +143,7 @@ O hook reprova o que divergir da tabela, com o arquivo e o valor esperado:
 | `.pre-commit-config.yaml` | hooks remotos só os da tabela, no `rev` dela; sem `default_language_version.node` |
 | workflows e actions locais | Actions só as da tabela, pelo SHA dela; `uvx pre-commit@` na versão dela; nenhum `node-version`/`python-version` escrito (o `pnpm/setup` lê o `devEngines` e o uv lê o `.python-version`) |
 | `.github/dependabot.yml` | existe; todo ecossistema com `cooldown.default-days` igual à trava do pnpm e `ignore` das ferramentas da tabela |
+| workflows, `Makefile` e `*.sh` | ferramenta da seção `[uvx]` (pip-audit) só como `uvx <nome>@<versão>` ou `--with <nome>==<versão>`, na versão da tabela |
 | `Dockerfile*` | imagens `python`, `node`, `ghcr.io/pnpm/pnpm` e `ghcr.io/astral-sh/uv` na versão exata, no `FROM` e no `COPY --from=` (no `ignore` do Dependabot elas vão sem o host: `pnpm/pnpm`, `astral-sh/uv`) |
 
 **Política:** a versão mais nova com pelo menos 7 dias de publicada. O Dependabot de cada projeto não

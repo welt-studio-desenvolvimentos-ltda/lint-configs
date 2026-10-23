@@ -30,6 +30,15 @@ DOCKER_IMAGES = {"python": "python", "node": "node", "ghcr.io/pnpm/pnpm": "pnpm"
 REQUIREMENT = re.compile(r"^\s*([A-Za-z0-9_.-]+)(\[[^\]]*\])?\s*(.*)$")
 USES = re.compile(r"^\s*-?\s*uses:\s*['\"]?([^\s'\"#]+)")
 UVX_PRE_COMMIT = re.compile(r"pre-commit@([0-9][0-9.]*)")
+# `uvx [opções] <ferramenta>[@versão]` e `--with <ferramenta>[==versão]`: as duas formas de rodar uma
+# ferramenta fora do lock do projeto. As opções do uvx que recebem valor pulam a palavra seguinte.
+UVX_VALUE_OPTIONS = frozenset(
+    {"--from", "--with", "--with-editable", "--with-requirements", "--python", "-p", "--index",
+     "--default-index", "--index-url", "-i", "--extra-index-url", "--constraints", "-c", "--overrides",
+     "--build-constraints", "-b", "--env-file", "--directory", "--project", "--cache-dir", "--config-file"}
+)
+TOOL_SPEC = re.compile(r"^([A-Za-z][\w.-]*)(?:@(\S+))?$")
+WITH_TOOL = re.compile(r"--with[ =]([A-Za-z][\w.-]*)(?:==(\S+))?")
 LITERAL_RUNTIME = re.compile(r"^\s*(node-version|python-version):\s*['\"]?\d")
 FROM_LINE = re.compile(r"^\s*FROM\s+(?:--platform=\S+\s+)?(\S+)", re.IGNORECASE)
 COPY_FROM = re.compile(r"^\s*COPY\s+(?:--\S+\s+)*--from=(\S+)", re.IGNORECASE)
@@ -45,6 +54,7 @@ class Table:
     python: dict[str, str]
     pre_commit_version: str
     pre_commit_repos: dict[str, str]
+    uvx: dict[str, str]
     actions: dict[str, dict[str, str]]
     release_age_days: int
 
@@ -58,6 +68,7 @@ class Table:
             python=data["python"],
             pre_commit_version=pre_commit["version"],
             pre_commit_repos=pre_commit["repos"],
+            uvx=data["uvx"],
             actions=data["actions"],
             release_age_days=data["supply-chain"]["minimum-release-age-days"],
         )
@@ -225,12 +236,49 @@ def check_workflow(root: Path, path: PurePosixPath, t: Table) -> list[str]:
         for found in UVX_PRE_COMMIT.findall(line):
             if found != t.pre_commit_version:
                 errors.append(f"{where}: pre-commit@{found} deve ser pre-commit@{t.pre_commit_version}")
+        errors += uvx_errors(where, line, t)
         if LITERAL_RUNTIME.match(line):
             errors.append(
                 f"{where}: versão de runtime escrita no workflow; o Node vem do devEngines (pnpm/setup) "
                 "e o Python do .python-version (uv)"
             )
     return errors
+
+
+def uvx_errors(where: str, line: str, t: Table) -> list[str]:
+    """Ferramenta da seção `[uvx]` rodada fora do lock só na versão da tabela."""
+    errors: list[str] = []
+    for tool, version in uvx_tools(line):
+        want = t.uvx.get(tool)
+        if want is not None and version != want:
+            errors.append(f"{where}: uvx {tool}@{version or '(sem versão)'} deve ser uvx {tool}@{want}")
+    for tool, version in WITH_TOOL.findall(line):
+        want = t.uvx.get(tool)
+        if want is not None and version != want:
+            errors.append(f"{where}: --with {tool}=={version or '(sem versão)'} deve ser --with {tool}=={want}")
+    return errors
+
+
+def uvx_tools(line: str) -> list[tuple[str, str]]:
+    """`(ferramenta, versão)` de cada `uvx` da linha; versão vazia quando não há `@`."""
+    words = line.split()
+    found: list[tuple[str, str]] = []
+    for start, word in enumerate(words):
+        if word != "uvx" and not word.endswith(("/uvx", "@uvx")):
+            continue
+        i = start + 1
+        while i < len(words) and words[i].startswith("-"):
+            i += 2 if words[i] in UVX_VALUE_OPTIONS else 1
+        spec = TOOL_SPEC.match(words[i]) if i < len(words) else None
+        if spec:
+            found.append((spec.group(1), spec.group(2) or ""))
+    return found
+
+
+def check_script(root: Path, path: PurePosixPath, t: Table) -> list[str]:
+    """Script e Makefile rodam as ferramentas de fora do lock na versão da tabela, como a CI."""
+    lines = (root / path).read_text(encoding="utf-8").splitlines()
+    return [e for number, line in enumerate(lines, 1) for e in uvx_errors(f"{path}:{number}", line, t)]
 
 
 def dependabot_image_name(image: str) -> str:
@@ -308,6 +356,8 @@ def check(root: Path, excludes: list[str], t: Table) -> list[str]:
             errors += check_dependabot(root, p, t)
         elif p.name.startswith("Dockerfile"):
             errors += check_dockerfile(root, p, t)
+        elif p.name == "Makefile" or p.suffix == ".sh":
+            errors += check_script(root, p, t)
     if not any(str(p) in (".github/dependabot.yml", ".github/dependabot.yaml") for p in files):
         errors.append(".github/dependabot.yml: ausente (todo projeto tem o Dependabot, com o cooldown da tabela)")
     return errors

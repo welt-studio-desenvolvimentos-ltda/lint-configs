@@ -44,6 +44,11 @@ version = "4.7.0"
 "https://github.com/compilerla/conventional-pre-commit" = "v4.4.0"
 "https://github.com/gitleaks/gitleaks" = "v8.30.1"
 
+# Ferramentas que a CI, os scripts e os Makefiles rodam fora do lock do projeto: sempre
+# `uvx <nome>@<versão>` (ou `--with <nome>==<versão>`), na versão daqui. O pre-commit fica acima.
+[uvx]
+pip-audit = "2.10.1"
+
 # Actions do GitHub permitidas, fixadas por SHA (uma tag pode ser movida, um SHA não). Action fora
 # desta lista reprova. `pnpm/setup` substitui `actions/setup-node` e `pnpm/action-setup`: ele lê o
 # Node do `devEngines.runtime` e o pnpm do `packageManager`, a única declaração dos dois. O Python

@@ -7,12 +7,3 @@
   language: script
   pass_filenames: false
   always_run: true
-
-# Reprova o projeto cuja versão de ferramenta diverge de `versions/versions.toml` do `rev` declarado.
-# `args: [--exclude, <glob>]` tira pastas de referência vendorizadas.
-- id: versions
-  name: versions (tabela de versões da Welt Studio)
-  entry: welt-versions
-  language: python
-  pass_filenames: false
-  always_run: true

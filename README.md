@@ -11,7 +11,8 @@ precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 "@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v4.0.1&path:/eslint"
 ```
 
-O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`.
+O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`;
+o Renovate abre esse PR sozinho quando sai uma tag nova, mas sem o lockfile (ver "Renovate").
 
 ```javascript
 // eslint.config.mjs
@@ -66,7 +67,7 @@ pacote, em versão fixa — o projeto não declara nem registra nenhum deles.
 
 1. Mudar `eslint/`, subir `version` no `eslint/package.json`.
 2. Commit e tag `eslint-vX.Y.Z` no mesmo commit, push da tag.
-3. Em cada projeto, trocar a tag na dependência e rodar `pnpm install`.
+3. O Renovate abre em cada projeto o PR que troca a tag; rodar `pnpm install` nele antes do merge.
 
 ## Ruff: `ruff/base.toml` pelo hook `ruff-base`
 
@@ -76,7 +77,7 @@ cópia, mantida por um hook de pre-commit deste repo:
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/lint-configs
-  rev: ruff-v1.1.2
+  rev: ruff-v1.2.0
   hooks:
     - id: ruff-base
 ```
@@ -114,56 +115,50 @@ a versão do Ruff morar só no `uv.lock`.
 1. Mudar `ruff/base.toml`. O `required-version` só sobe quando o padrão passa a usar uma regra que
    a versão mínima atual não conhece.
 2. Commit e tag `ruff-vX.Y.Z` no mesmo commit, push da tag.
-3. Em cada projeto, trocar o `rev` do hook `ruff-base` e rodar o pre-commit.
+3. O Renovate troca o `rev` do hook `ruff-base` em cada projeto, no PR mensal.
 
 ### Subir o Ruff num projeto
 
-É só o projeto: o pin `ruff==` do `pyproject.toml` e o `uv lock`, sem tag aqui. O Ruff novo pode
-mudar o resultado do lint ou do format (as versões minor promovem regras e mudam o estilo estável),
-e isso aparece na CI do próprio PR.
+É só o projeto: o pin `ruff==` do `pyproject.toml` e o `uv.lock`, sem tag aqui, e o Renovate faz
+isso no PR mensal. O Ruff novo pode mudar o resultado do lint ou do format (as versões minor
+promovem regras e mudam o estilo estável), e isso aparece na CI do próprio PR.
 
-## Versões: `versions/versions.toml` pelo hook `versions`
+## Renovate: `renovate/default.json5`
 
-Uma tabela só para as ferramentas de todos os projetos: Python, Node, pnpm, uv, as ferramentas de
-frontend (TypeScript, ESLint, Prettier, Vite, Vitest, Knip, jscpd, `@types/node`), as de Python
-(pytest, Pyright), o pre-commit e os hooks remotos, as ferramentas rodadas por `uvx` (pip-audit), as Actions do GitHub (por SHA) e a idade mínima
-de uma versão para entrar no install.
+A política de versões de todos os projetos, declarada uma vez. Cada projeto só a herda, com um
+`renovate.json` na raiz (o app Renovate do GitHub está instalado na organização):
 
-```yaml
-# .pre-commit-config.yaml
-- repo: https://github.com/welt-studio/lint-configs
-  rev: versions-v1.1.0
-  hooks:
-    - id: versions
-      args: [--exclude, "_reference/**"] # só para código de terceiros vendorizado
+```json
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>welt-studio/lint-configs//renovate/default"]
+}
 ```
 
-O hook reprova o que divergir da tabela, com o arquivo e o valor esperado:
+O preset é lido do `main`, sem tag: mudar a política aqui vale para todos no merge.
 
-| Onde | O que confere |
+| Regra | O que faz |
 |---|---|
-| `package.json` da raiz do workspace | `packageManager` (pnpm) e `devEngines.runtime` (Node) |
-| `pnpm-workspace.yaml` | `catalog` com a versão exata de cada ferramenta usada; `minimumReleaseAge` |
-| todo `package.json` do workspace | ferramenta da tabela só como `catalog:` (uma declaração por projeto) |
-| `pyproject.toml` e `requirements*.txt` | `requires-python`, `[tool.uv] required-version`, pins exatos de pytest e Pyright; `.python-version` ao lado |
-| `.pre-commit-config.yaml` | hooks remotos só os da tabela, no `rev` dela; sem `default_language_version.node` |
-| workflows e actions locais | Actions só as da tabela, pelo SHA dela; `uvx pre-commit@` na versão dela; nenhum `node-version`/`python-version` escrito (o `pnpm/setup` lê o `devEngines` e o uv lê o `.python-version`) |
-| `.github/dependabot.yml` | existe; todo ecossistema com `cooldown.default-days` igual à trava do pnpm e `ignore` das ferramentas da tabela |
-| workflows, `Makefile` e `*.sh` | ferramenta da seção `[uvx]` (pip-audit) só como `uvx <nome>@<versão>` ou `--with <nome>==<versão>`, na versão da tabela |
-| `Dockerfile*` | imagens `python`, `node`, `ghcr.io/pnpm/pnpm` e `ghcr.io/astral-sh/uv` na versão exata, no `FROM` e no `COPY --from=` (no `ignore` do Dependabot elas vão sem o host: `pnpm/pnpm`, `astral-sh/uv`) |
+| Calendário | uma rodada por mês, na madrugada do dia 1 (`America/Sao_Paulo`), com a manutenção do lockfile junto |
+| Idade mínima | a versão mais nova com pelo menos 7 dias de publicada; sem data no registro, fica retida. A trava do pnpm (`minimumReleaseAge` do `pnpm-workspace.yaml`) continua na instalação |
+| Agrupamento | um PR por projeto com tudo que não é major; cada major no seu |
+| Merge automático | patch, minor e lockfile entram sozinhos quando todos os checks do PR passam; PR sem check nenhum não entra. O próprio Renovate faz o merge (`platformAutomerge: false`), porque os repositórios não têm proteção de branch |
+| Revisão | majors, minor do Python (depende de wheel do `torch`), major de Node e pnpm, e o `@welt-studio/eslint-config` |
+| Segurança | correção de vulnerabilidade (alerta do GitHub) abre PR na hora, fora do calendário e sem a idade mínima. Correção do npm com menos de 7 dias ainda precisa do `minimumReleaseAgeExclude` do pnpm |
+| Actions | fixadas por SHA, com a versão num comentário |
+| Fora do Renovate | os `overrides` do pnpm (correção de vulnerabilidade com faixa fechada) e o `rustsec/audit-check`, preso no commit do `main` até sair release em Node 24 |
 
-**Política:** a versão mais nova com pelo menos 7 dias de publicada. O Dependabot de cada projeto não
-sobe as ferramentas da tabela (senão a CI reprovaria a PR dele); elas sobem aqui, para todos ao
-mesmo tempo. O resto das dependências (React, Django, FastAPI...) continua com o Dependabot.
-Atualização de segurança de uma ferramenta da tabela também passa por aqui.
+Os gerenciadores do Renovate leem sozinhos `package.json` (inclusive `packageManager` e
+`devEngines`), o `catalog` do pnpm, `pyproject.toml` e `uv.lock`, `.python-version`, Dockerfiles,
+docker-compose, workflows e o `.pre-commit-config.yaml`. O preset acrescenta, por regex, o que eles
+não leem: o `[tool.uv] required-version`, as imagens `ghcr.io/astral-sh/uv` e `ghcr.io/pnpm/pnpm`
+(o GHCR não informa data, então andam pela versão do pacote no PyPI e no npm), o `ARG PNPM_VERSION`,
+o `UV_VERSION` dos scripts, o `uvx <ferramenta>@<versão>` e o `@welt-studio/eslint-config` pela tag
+`eslint-v*`. Esse último vem sem o lockfile, porque gerenciador por regex não roda o `pnpm install`:
+rodar no PR antes do merge.
 
-### Publicar uma versão da tabela
-
-1. Mudar `versions/versions.toml` (e o corte de data no topo).
-2. Rodar os testes: `uvx --with pyyaml==6.0.3 pytest@9.1.1 versions`.
-3. Commit e tag `versions-vX.Y.Z` no mesmo commit, push da tag.
-4. Em cada projeto, trocar o `rev` do hook `versions`, aplicar o que ele apontar e rodar
-   `pnpm install` e `uv lock`.
+Conferir uma mudança no preset antes do merge:
+`npx --package renovate renovate-config-validator --no-global renovate/default.json5`.
 
 ## Pyright
 

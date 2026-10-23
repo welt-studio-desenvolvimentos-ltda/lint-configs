@@ -25,17 +25,15 @@
   // A trava do pnpm (`minimumReleaseAge` do `pnpm-workspace.yaml`) continua valendo na instalação.
   minimumReleaseAge: '7 days',
 
-  // O próprio Renovate faz o merge, e só com todos os checks do PR verdes. O merge nativo do GitHub
-  // fica desligado porque os repositórios não têm proteção de branch para segurá-lo; e PR sem
-  // nenhum check nunca entra sozinho (sem `ignoreTests`).
+  // Merge automático desligado (decisão do PO, 2026-10-23): a CI dos projetos ainda não monta as
+  // imagens Docker em PR, alguns arquivos (Dockerfile de produção, docker-compose) não disparam
+  // teste nenhum, e no nebulai o PR só roda Ruff nos arquivos alterados, Knip e audit. Todo PR
+  // espera a aprovação do PO. Quando a CI cobrir isso, religar com `automerge: true` numa regra
+  // para patch, minor e lockfile; o merge fica com o próprio Renovate, só com os checks verdes
+  // (sem proteção de branch, o merge nativo do GitHub não seria garantia).
   platformAutomerge: false,
 
   packageRules: [
-    {
-      description: 'Patch, minor e manutenção do lockfile entram sozinhos quando a CI passa.',
-      matchUpdateTypes: ['minor', 'patch', 'pin', 'digest', 'lockFileMaintenance'],
-      automerge: true,
-    },
     {
       description: 'Minor do Python (3.14 → 3.15) é decisão do PO: depende de wheel das dependências pesadas (torch).',
       matchDepNames: ['python'],

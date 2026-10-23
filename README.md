@@ -142,8 +142,8 @@ O preset é lido do `main`, sem tag: mudar a política aqui vale para todos no m
 | Calendário | uma rodada por mês, na madrugada do dia 1 (`America/Sao_Paulo`), com a manutenção do lockfile junto |
 | Idade mínima | a versão mais nova com pelo menos 7 dias de publicada; sem data no registro, fica retida. A trava do pnpm (`minimumReleaseAge` do `pnpm-workspace.yaml`) continua na instalação |
 | Agrupamento | um PR por projeto com tudo que não é major; cada major no seu |
-| Merge automático | patch, minor e lockfile entram sozinhos quando todos os checks do PR passam; PR sem check nenhum não entra. O próprio Renovate faz o merge (`platformAutomerge: false`), porque os repositórios não têm proteção de branch |
-| Revisão | majors, minor do Python (depende de wheel do `torch`), major de Node e pnpm, e o `@welt-studio/eslint-config` |
+| Merge | todo PR espera a aprovação do PO. O merge automático está desligado até a CI dos projetos montar as imagens Docker em PR e testar o que cada PR muda (o motivo e como religar estão no preset) |
+| PR separado | majors, minor do Python (depende de wheel do `torch`), major de Node e pnpm, e o `@welt-studio/eslint-config` |
 | Segurança | correção de vulnerabilidade (alerta do GitHub) abre PR na hora, fora do calendário e sem a idade mínima. Correção do npm com menos de 7 dias ainda precisa do `minimumReleaseAgeExclude` do pnpm |
 | Actions | fixadas por SHA, com a versão num comentário |
 | Fora do Renovate | os `overrides` do pnpm (correção de vulnerabilidade com faixa fechada) e o `rustsec/audit-check`, preso no commit do `main` até sair release em Node 24 |

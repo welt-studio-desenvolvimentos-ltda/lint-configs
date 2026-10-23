@@ -5,7 +5,7 @@
 # ferramenta é mudar aqui, publicar uma tag `versions-vX.Y.Z` e trocar o `rev` nos projetos.
 # Ruff e ESLint não estão aqui: a versão deles mora no `ruff/base.toml` e no `eslint/package.json`.
 
-# Corte desta tabela: versões publicadas até 2026-10-15.
+# Corte desta tabela: versões publicadas até 2026-10-16.
 
 [runtimes]
 python = "3.14.8"
@@ -17,7 +17,7 @@ uv = "0.13.1"
 # `package.json` do workspace.
 [npm]
 typescript = "6.0.3"
-eslint = "10.12.0"
+eslint = "10.13.0"
 prettier = "3.9.10"
 vite = "8.3.4"
 vitest = "5.0.5"

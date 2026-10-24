@@ -1,6 +1,7 @@
 // Política de versões da Welt Studio: a única declaração, herdada por todo projeto com
-// `"extends": ["github>welt-studio/lint-configs//renovate/default"]` no `renovate.json`.
-// Sem tag de propósito: a política nova vale para todos no merge aqui.
+// `"extends": ["github>welt-studio/lint-configs//renovate/default.json5"]` no `renovate.json`
+// (com a extensão: sem ela o Renovate procura `default.json`). Sem tag de propósito: a política
+// nova vale para todos no merge aqui.
 {
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: [

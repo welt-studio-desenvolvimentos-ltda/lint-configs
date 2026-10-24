@@ -133,7 +133,7 @@ de terceiros recebe o código:
 ```json
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>welt-studio/lint-configs//renovate/default"]
+  "extends": ["github>welt-studio/lint-configs//renovate/default.json5"]
 }
 ```
 

@@ -89,12 +89,22 @@
       enabled: false,
     },
     {
-      // Fora do PR agrupado: a mudança vem sem o lockfile (ver o `customManagers`), e a CI do grupo
-      // inteiro ficaria vermelha por ela. Rodar `pnpm install` no PR antes do merge.
-      description: 'Os pacotes ESLint e tsconfig deste repo vêm cada um em PR próprio, para revisão.',
+      // O gerenciador por regex troca só a tag (ver o `customManagers`); o lockfile vem deste
+      // comando, que o runner (`welt-studio/renovate`, `allowedCommands`) permite e mais nenhum.
+      // `--lockfile-only` só recalcula o lockfile; `--ignore-scripts` não deixa pacote rodar código.
+      // PR próprio: se o lockfile falhar, não derruba o PR agrupado.
+      description: 'Os pacotes ESLint e tsconfig deste repo vêm cada um em PR próprio, com o lockfile, para revisão.',
       matchDepNames: ['@welt-studio/eslint-config', '@welt-studio/tsconfig'],
       groupName: '{{depName}}',
       automerge: false,
+      postUpgradeTasks: {
+        // O pnpm da imagem do Renovate depende do Node instalado antes.
+        installTools: { node: {}, pnpm: {} },
+        commands: ['pnpm install --lockfile-only --ignore-scripts'],
+        // Da pasta do manifesto: o pnpm sobe até o `pnpm-workspace.yaml` do projeto.
+        workingDirTemplate: '{{packageFileDir}}',
+        fileFilters: ['**/pnpm-lock.yaml'],
+      },
     },
     {
       // Os `overrides` são correções de vulnerabilidade em dependência indireta, com faixa fechada de
@@ -146,8 +156,8 @@
       datasourceTemplate: 'npm',
     },
     {
-      // O gerenciador npm não lê dependência do git com `&path:`. O lockfile não acompanha (gerenciador
-      // por regex não roda o `pnpm install`), então este PR sempre pede revisão.
+      // O gerenciador npm não lê dependência do git com `&path:`. Gerenciador por regex não roda o
+      // `pnpm install`: o lockfile vem do `postUpgradeTasks` da regra desses pacotes.
       description: 'O pacote ESLint deste repo, pela tag `eslint-v*`.',
       customType: 'regex',
       managerFilePatterns: ['/(^|/)package\\.json$/', '/(^|/)pnpm-workspace\\.yaml$/'],

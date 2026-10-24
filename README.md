@@ -12,7 +12,7 @@ precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 ```
 
 O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`;
-o Renovate abre esse PR sozinho quando sai uma tag nova, mas sem o lockfile (ver "Renovate").
+o Renovate abre esse PR sozinho quando sai uma tag nova, já com o lockfile (ver "Renovate").
 
 ```javascript
 // eslint.config.mjs
@@ -68,7 +68,7 @@ pacote, em versão fixa — o projeto não declara nem registra nenhum deles.
 
 1. Mudar `eslint/`, subir `version` no `eslint/package.json`.
 2. Commit e tag `eslint-vX.Y.Z` no mesmo commit, push da tag.
-3. O Renovate abre em cada projeto o PR que troca a tag; rodar `pnpm install` nele antes do merge.
+3. O Renovate abre em cada projeto o PR que troca a tag, com o lockfile; revisar e fazer o merge.
 
 ## Ruff: `ruff/base.toml` pelo hook `ruff-base`
 
@@ -157,8 +157,9 @@ docker-compose, workflows e o `.pre-commit-config.yaml`. O preset acrescenta, po
 não leem: o `[tool.uv] required-version`, as imagens `ghcr.io/astral-sh/uv` e `ghcr.io/pnpm/pnpm`
 (o GHCR não informa data, então andam pela versão do pacote no PyPI e no npm), o
 `uvx <ferramenta>@<versão>` dos workflows e o `@welt-studio/eslint-config` pela tag `eslint-v*`. Esse
-último vem sem o lockfile, porque gerenciador por regex não roda o `pnpm install`: rodar no PR antes
-do merge.
+último (e o `@welt-studio/tsconfig`) chega com o lockfile: o preset roda
+`pnpm install --lockfile-only --ignore-scripts` no PR, o único comando que o runner permite
+(`allowedCommands`), que recalcula o lockfile sem rodar código de pacote.
 
 Duas regras ainda existem só por um projeto, cada uma com o débito que a tira no TECH_DEBT dele: o
 `ARG PNPM_VERSION` (comichub, que deve usar o `FROM` direto como os outros) e o `UV_VERSION` do

@@ -25,6 +25,13 @@
   // A trava do pnpm (`minimumReleaseAge` do `pnpm-workspace.yaml`) continua valendo na instalação.
   minimumReleaseAge: '7 days',
 
+  // Todas as correções de vulnerabilidade de um projeto num PR só: correções que dependem umas das
+  // outras (pacote e dependência dele, ambos com alerta) só resolvem o lockfile juntas, e um PR por
+  // correção abriria dezenas de PRs de uma vez, cada um rodando a CI.
+  vulnerabilityAlerts: {
+    groupName: 'security fixes',
+  },
+
   // Merge automático desligado (decisão do PO, 2026-10-23): a CI dos projetos ainda não monta as
   // imagens Docker em PR, alguns arquivos (Dockerfile de produção, docker-compose) não disparam
   // teste nenhum, e no nebulai o PR só roda Ruff nos arquivos alterados, Knip e audit. Todo PR

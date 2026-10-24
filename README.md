@@ -126,7 +126,9 @@ promovem regras e mudam o estilo estável), e isso aparece na CI do próprio PR.
 ## Renovate: `renovate/default.json5`
 
 A política de versões de todos os projetos, declarada uma vez. Cada projeto só a herda, com um
-`renovate.json` na raiz (o app Renovate do GitHub está instalado na organização):
+`renovate.json` na raiz. O Renovate roda no workflow do repositório privado `welt-studio/renovate`,
+com um GitHub App da organização e saída de rede restrita a uma lista de domínios; nenhum serviço
+de terceiros recebe o código:
 
 ```json
 {
@@ -144,7 +146,7 @@ O preset é lido do `main`, sem tag: mudar a política aqui vale para todos no m
 | Agrupamento | um PR por projeto com tudo que não é major; cada major no seu |
 | Merge | todo PR espera a aprovação do PO. O merge automático está desligado até a CI dos projetos montar as imagens Docker em PR e testar o que cada PR muda (o motivo e como religar estão no preset) |
 | PR separado | majors, minor do Python (depende de wheel do `torch`), major de Node e pnpm, e o `@welt-studio/eslint-config` |
-| Segurança | correção de vulnerabilidade (alerta do GitHub) abre PR na hora, fora do calendário e sem a idade mínima. Correção do npm com menos de 7 dias ainda precisa do `minimumReleaseAgeExclude` do pnpm |
+| Segurança | correção de vulnerabilidade (alerta do GitHub) abre PR na hora, fora do calendário e sem a idade mínima, todas num PR só por projeto (correções que dependem umas das outras resolvem o lockfile juntas). Correção do npm com menos de 7 dias ainda precisa do `minimumReleaseAgeExclude` do pnpm |
 | Actions | fixadas por SHA, com a versão num comentário |
 | Fora do Renovate | os `overrides` do pnpm (correção de vulnerabilidade com faixa fechada) e o `rustsec/audit-check`, preso no commit do `main` até sair release em Node 24 |
 

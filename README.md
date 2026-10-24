@@ -154,10 +154,15 @@ Os gerenciadores do Renovate leem sozinhos `package.json` (inclusive `packageMan
 `devEngines`), o `catalog` do pnpm, `pyproject.toml` e `uv.lock`, `.python-version`, Dockerfiles,
 docker-compose, workflows e o `.pre-commit-config.yaml`. O preset acrescenta, por regex, o que eles
 não leem: o `[tool.uv] required-version`, as imagens `ghcr.io/astral-sh/uv` e `ghcr.io/pnpm/pnpm`
-(o GHCR não informa data, então andam pela versão do pacote no PyPI e no npm), o `ARG PNPM_VERSION`,
-o `UV_VERSION` dos scripts, o `uvx <ferramenta>@<versão>` e o `@welt-studio/eslint-config` pela tag
-`eslint-v*`. Esse último vem sem o lockfile, porque gerenciador por regex não roda o `pnpm install`:
-rodar no PR antes do merge.
+(o GHCR não informa data, então andam pela versão do pacote no PyPI e no npm), o
+`uvx <ferramenta>@<versão>` dos workflows e o `@welt-studio/eslint-config` pela tag `eslint-v*`. Esse
+último vem sem o lockfile, porque gerenciador por regex não roda o `pnpm install`: rodar no PR antes
+do merge.
+
+Duas regras ainda existem só por um projeto, cada uma com o débito que a tira no TECH_DEBT dele: o
+`ARG PNPM_VERSION` (comichub, que deve usar o `FROM` direto como os outros) e o `UV_VERSION` do
+instalador do nebulai (que deve ler o `required-version`). Regra nova no preset vale para todos;
+versão escrita num lugar que só um projeto usa se corrige no projeto, não aqui.
 
 Conferir uma mudança no preset antes do merge:
 `npx --package renovate renovate-config-validator --no-global renovate/default.json5`.

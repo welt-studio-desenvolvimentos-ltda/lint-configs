@@ -102,6 +102,9 @@
   // Versões que os gerenciadores do Renovate não leem sozinhos.
   customManagers: [
     {
+      // `scripts/*.mjs` existe só pelo `UV_VERSION` do instalador do nebulai (débito no TECH_DEBT
+      // dele: o script deve ler o `required-version`). Corrigido lá, esse padrão e o terceiro
+      // `matchStrings` saem daqui.
       description: 'uv: `[tool.uv] required-version`, imagem do GHCR e a constante do instalador do nebulai.',
       customType: 'regex',
       managerFilePatterns: [
@@ -118,6 +121,8 @@
       datasourceTemplate: 'pypi',
     },
     {
+      // O `ARG PNPM_VERSION` é só do comichub (débito no TECH_DEBT dele: `FROM` direto, como os
+      // outros). Corrigido lá, o segundo `matchStrings` sai daqui.
       description: 'pnpm nas imagens do GHCR e no `ARG PNPM_VERSION` dos Dockerfiles.',
       customType: 'regex',
       managerFilePatterns: ['/(^|/)[^/]*Dockerfile[^/]*$/'],
@@ -143,7 +148,7 @@
     {
       description: 'Ferramentas rodadas fora do lock do projeto: `uvx <nome>@<versão>`.',
       customType: 'regex',
-      managerFilePatterns: ['/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/', '/(^|/)Makefile$/', '/\\.sh$/'],
+      managerFilePatterns: ['/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/'],
       matchStrings: ['uvx (?<depName>[A-Za-z0-9_.-]+)@(?<currentValue>\\d+(?:\\.\\d+)+)'],
       datasourceTemplate: 'pypi',
     },

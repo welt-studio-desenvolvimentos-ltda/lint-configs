@@ -1,0 +1,32 @@
+// Padrão TypeScript da Welt Studio: o mesmo para todos os projetos.
+//
+// O `tsconfig.json` do projeto faz `"extends": "@welt-studio/tsconfig/base.json"` e só declara
+// fatos dele: `target`, `lib`, `jsx`, `types`, `paths`, `include`, `noEmit`/referências. Rigor e
+// exceção vêm daqui; precisou mudar, muda aqui, para todos, numa tag nova.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "strict": true,
+    // Acesso por índice (`lista[i]`, `mapa[chave]`) pode ser `undefined`: o erro de tipo mais
+    // comum que escapa do `strict`.
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    // Import só de tipo se escreve `import type`; o que sobra no JS é o que está escrito.
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    // Só sintaxe que some ao tirar os tipos (sem `enum`, `namespace` com código ou parameter
+    // property): o mesmo código roda no Vite, no esbuild e no Node sem transpilar.
+    "erasableSyntaxOnly": true,
+    "forceConsistentCasingInFileNames": true,
+    // Variável e parâmetro sem uso ficam com o ESLint (`no-unused-vars`, que aceita o prefixo `_`):
+    // ligar aqui também daria dois avisos para o mesmo problema.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    // Todos os projetos são empacotados (Vite): resolução de módulo do bundler.
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true
+  }
+}

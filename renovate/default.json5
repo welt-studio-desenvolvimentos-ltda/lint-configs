@@ -63,10 +63,22 @@
       versioning: 'regex:^ruff-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
     },
     {
-      description: 'E o pacote ESLint só as `eslint-v*`.',
+      description: 'O hook `pyright-base` só as `pyright-v*`.',
+      matchPackageNames: ['welt-studio/lint-configs'],
+      matchCurrentValue: '/^pyright-v/',
+      versioning: 'regex:^pyright-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+    },
+    {
+      description: 'O pacote ESLint só as `eslint-v*`.',
       matchPackageNames: ['welt-studio/lint-configs'],
       matchCurrentValue: '/^eslint-v/',
       versioning: 'regex:^eslint-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+    },
+    {
+      description: 'E o pacote do tsconfig só as `tsconfig-v*`.',
+      matchPackageNames: ['welt-studio/lint-configs'],
+      matchCurrentValue: '/^tsconfig-v/',
+      versioning: 'regex:^tsconfig-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
     },
     {
       // Exceção: a v2.0.0 (2024) roda em Node 20, que o GitHub está tirando dos runners, e a migração
@@ -79,9 +91,9 @@
     {
       // Fora do PR agrupado: a mudança vem sem o lockfile (ver o `customManagers`), e a CI do grupo
       // inteiro ficaria vermelha por ela. Rodar `pnpm install` no PR antes do merge.
-      description: 'O pacote ESLint deste repo vem em PR próprio, para revisão.',
-      matchDepNames: ['@welt-studio/eslint-config'],
-      groupName: '@welt-studio/eslint-config',
+      description: 'Os pacotes ESLint e tsconfig deste repo vêm cada um em PR próprio, para revisão.',
+      matchDepNames: ['@welt-studio/eslint-config', '@welt-studio/tsconfig'],
+      groupName: '{{depName}}',
       automerge: false,
     },
     {
@@ -144,6 +156,16 @@
       packageNameTemplate: 'welt-studio/lint-configs',
       datasourceTemplate: 'github-tags',
       versioningTemplate: 'regex:^eslint-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+    },
+    {
+      description: 'O pacote do tsconfig deste repo, pela tag `tsconfig-v*` (mesmo caso do ESLint).',
+      customType: 'regex',
+      managerFilePatterns: ['/(^|/)package\\.json$/', '/(^|/)pnpm-workspace\\.yaml$/'],
+      matchStrings: ['github:welt-studio/lint-configs#(?<currentValue>tsconfig-v\\d+\\.\\d+\\.\\d+)&path:/tsconfig'],
+      depNameTemplate: '@welt-studio/tsconfig',
+      packageNameTemplate: 'welt-studio/lint-configs',
+      datasourceTemplate: 'github-tags',
+      versioningTemplate: 'regex:^tsconfig-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
     },
     {
       description: 'Ferramentas rodadas fora do lock do projeto: `uvx <nome>@<versão>`.',

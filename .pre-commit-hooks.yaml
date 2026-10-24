@@ -3,7 +3,15 @@
 # Mantém `ruff-base.toml` na raiz do projeto igual ao `ruff/base.toml` do `rev` declarado.
 - id: ruff-base
   name: ruff-base (padrão Ruff da Welt Studio)
-  entry: ruff/sync_base.py
+  entry: sync_base.py ruff
+  language: script
+  pass_filenames: false
+  always_run: true
+
+# Mantém `pyright-base.json` na raiz do projeto igual ao `pyright/base.json` do `rev` declarado.
+- id: pyright-base
+  name: pyright-base (padrão Pyright da Welt Studio)
+  entry: sync_base.py pyright
   language: script
   pass_filenames: false
   always_run: true

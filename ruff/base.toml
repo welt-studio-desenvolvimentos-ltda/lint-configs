@@ -63,6 +63,7 @@ select = [
     "FAST",    # FastAPI (só dispara em código FastAPI)
     "DJ",      # Django (só dispara em código Django)
     "TID251",  # APIs proibidas ([lint.flake8-tidy-imports.banned-api])
+    "PGH003",  # `# type: ignore` sem o código da regra (o Pyright cobra o que não ignora nada)
     "PGH004",  # noqa sem código
     "PLC0415", # import dentro de função
 ]

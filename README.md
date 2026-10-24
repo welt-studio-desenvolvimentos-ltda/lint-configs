@@ -78,7 +78,7 @@ cópia, mantida por um hook de pre-commit deste repo:
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/lint-configs
-  rev: ruff-v1.2.0
+  rev: ruff-v1.3.0
   hooks:
     - id: ruff-base
 ```
@@ -102,7 +102,7 @@ vêm do base; precisou de regra nova, ela entra aqui, para todos, numa tag nova.
 | Bloco | O que fixa |
 |---|---|
 | `required-version` | a versão mínima do Ruff, a primeira que conhece todas as regras do padrão. A exata é a do `uv.lock` do projeto. Sem `preview`, porque uma versão patch do Ruff pode mudar o que está em preview |
-| `select` explícito (sem `ALL`) | a união das famílias que os projetos usavam: pycodestyle, pyflakes, isort, naming, pyupgrade, bandit, bugbear, pylint, async, timezone, pathlib, Ruff, tryceratops, logging (`LOG`), concatenação de string (`ISC001`/`ISC003`/`ISC004`), anotações, `TC`, FastAPI, Django, `noqa` sem código (`PGH004`) e sem uso (`RUF100`). Sem `FA`: `from __future__ import annotations` é proibido (Python 3.14, PEP 649) |
+| `select` explícito (sem `ALL`) | a união das famílias que os projetos usavam: pycodestyle, pyflakes, isort, naming, pyupgrade, bandit, bugbear, pylint, async, timezone, pathlib, Ruff, tryceratops, logging (`LOG`), concatenação de string (`ISC001`/`ISC003`/`ISC004`), anotações, `TC`, FastAPI, Django, `noqa` sem código (`PGH004`) e sem uso (`RUF100`), `# type: ignore` sem o código da regra (`PGH003`). Sem `FA`: `from __future__ import annotations` é proibido (Python 3.14, PEP 649) |
 | Limites | complexidade 12 (igual ao ESLint), `max-args` 5, `max-branches` 12, `max-returns` 6, `max-statements` 50 |
 | Runtime | `TC001`–`TC003` desligadas: no Python 3.14 mover import "só de tipo" para `TYPE_CHECKING` quase não ganha nada, e Pydantic, SQLAlchemy e FastAPI leem anotações em runtime. Fica o contrário (`TC004`: import de runtime escondido em `TYPE_CHECKING`), com Pydantic e rotas do FastAPI marcados como runtime |
 | Exceções padrão | testes (assert, número mágico, fixture, tamanho); `@declared_attr` do SQLAlchemy como classmethod; migrations geradas ficam fora do lint e do format (`extend-exclude` + `force-exclude`) |
@@ -168,6 +168,61 @@ versão escrita num lugar que só um projeto usa se corrige no projeto, não aqu
 Conferir uma mudança no preset antes do merge:
 `npx --package renovate renovate-config-validator --no-global renovate/default.json5`.
 
-## Pyright
+## Pyright: `pyright/base.json` pelo hook `pyright-base`
 
-`pyright/pyrightconfig.json` é referência; os projetos ainda mantêm a própria configuração.
+O mesmo esquema do Ruff: o `extends` do Pyright só lê arquivo local, e o hook mantém a cópia na raiz
+do projeto (o script `sync_base.py` é o mesmo dos dois hooks).
+
+```yaml
+# .pre-commit-config.yaml
+- repo: https://github.com/welt-studio/lint-configs
+  rev: pyright-v1.0.0
+  hooks:
+    - id: pyright-base
+```
+
+```jsonc
+// pyrightconfig.json, na raiz do projeto: só fatos dele
+{
+  "extends": "./pyright-base.json",
+  "include": ["backend"],
+  "venvPath": "backend",
+  "venv": ".venv",
+  // Código da aplicação em strict; o resto (testes) fica no standard da base.
+  "strict": ["backend/app"]
+}
+```
+
+| Bloco | O que fixa |
+|---|---|
+| `typeCheckingMode` | `standard` em tudo; o código da aplicação sobe para strict pela lista `strict` do projeto (o strict cobra o contrato de cada função; nos testes, o ruído das fixtures sem anotação não paga a fila) |
+| `reportUnnecessaryTypeIgnoreComment` | `# type: ignore` que não ignora nada reprova; o código da regra é cobrado pelo `PGH003` do Ruff |
+
+Nenhuma regra desligada: o projeto não declara `report*`. A versão do Pyright é o pin do
+`pyproject.toml` de cada projeto, que o Renovate sobe. O hook do projeto checa os arquivos do commit
+e a CI os arquivos alterados até a fila do strict zerar; depois, o projeto inteiro.
+
+## TypeScript: `@welt-studio/tsconfig`
+
+Pacote em `tsconfig/`, instalado por tag do git como o do ESLint:
+
+```json
+"@welt-studio/tsconfig": "github:welt-studio/lint-configs#tsconfig-v1.0.0&path:/tsconfig"
+```
+
+```jsonc
+// tsconfig.json do projeto: só fatos dele
+{
+  "extends": "@welt-studio/tsconfig/base.json",
+  "compilerOptions": { "target": "ES2022", "lib": ["ES2022", "DOM"], "jsx": "react-jsx", "noEmit": true },
+  "include": ["src"]
+}
+```
+
+A base liga, além do `strict`: `noUncheckedIndexedAccess` (acesso por índice pode ser `undefined`),
+`noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `verbatimModuleSyntax`,
+`isolatedModules` e `erasableSyntaxOnly` (sem `enum` nem parameter property). Variável e parâmetro
+sem uso ficam com o ESLint. Módulo `ESNext` com resolução `bundler`, `skipLibCheck`.
+
+O `tsc` checa o projeto inteiro (não há "só os arquivos do commit"), então o projeto adota a base
+depois de zerar os erros que ela acusa: é uma fatia de cada projeto, no índice de adequação dele.

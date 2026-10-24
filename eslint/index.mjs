@@ -13,6 +13,8 @@
  *     query: true,
  *   });
  */
+import { execFileSync } from "node:child_process";
+
 import js from "@eslint/js";
 import commentConfigs from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintReact from "@eslint-react/eslint-plugin";
@@ -128,6 +130,33 @@ const commonIgnores = [
   "**/.next/**",
   "**/out/**",
 ];
+
+/**
+ * O que o git ignora a partir de `dir` (todo `.gitignore`, o `.git/info/exclude` e o global), como
+ * padrões relativos a `dir`. O ESLint 10 não lê `.gitignore`: sem isto, o lint local pega `.venv`,
+ * cópias de referência e afins que a CI, que só vê o que está no git, nunca vê. Fora de um
+ * repositório git (ou sem o git instalado), não ignora nada a mais.
+ */
+function gitIgnored(dir) {
+  let output;
+  try {
+    output = execFileSync(
+      "git",
+      ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"],
+      { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 64 * 1024 * 1024 },
+    );
+  } catch {
+    return [];
+  }
+  return output
+    .split("\0")
+    .filter(Boolean)
+    .map((path) => {
+      // Nome de arquivo é literal: escapa o que o minimatch leria como glob (rota `[id]`, por exemplo).
+      const literal = path.replace(/[*?[\]{}()!]/g, "\\$&");
+      return literal.endsWith("/") ? `${literal}**` : literal;
+    });
+}
 
 // Regras que não dependem de tipo: valem nos arquivos com tipo e nos que estão fora do `tsconfig`.
 const untypedStandardRules = {
@@ -313,8 +342,8 @@ function warningsAsErrors(config) {
  * @param {boolean} [options.query] liga as regras do TanStack Query (padrão: false)
  * @param {boolean} [options.i18n] produto traduzido: texto visível no JSX só pelo catálogo
  *   (padrão: false)
- * @param {string[]} [options.ignores] ignores do projeto (código gerado ou de terceiros), somados aos
- *   comuns
+ * @param {string[]} [options.ignores] ignores do projeto (código gerado ou de terceiros que está no
+ *   git), somados aos comuns; o que o git ignora já fica de fora sem constar aqui
  */
 export function weltConfig({
   tsconfigRootDir,
@@ -334,8 +363,14 @@ export function weltConfig({
     toolConfigFiles.map((toolConfig) => [pattern, toolConfig]),
   );
 
+  const gitIgnores = gitIgnored(tsconfigRootDir);
+
   const configs = [
     { name: "welt/ignores", ignores: [...commonIgnores, ...ignores] },
+    // Padrões relativos à pasta de onde o git foi consultado, seja qual for a pasta da config.
+    ...(gitIgnores.length > 0
+      ? [{ name: "welt/gitignore", basePath: tsconfigRootDir, ignores: gitIgnores }]
+      : []),
     {
       name: "welt/linter-options",
       linterOptions: {

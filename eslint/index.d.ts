@@ -27,7 +27,10 @@ export interface WeltConfigOptions {
    * Padrão: `false`.
    */
   i18n?: boolean;
-  /** Ignores do projeto (código gerado ou de terceiros), somados aos comuns. */
+  /**
+   * Ignores do projeto (código gerado ou de terceiros que está no git), somados aos comuns. O que o
+   * git ignora (`.gitignore`) já fica de fora sem constar aqui.
+   */
   ignores?: string[];
 }
 

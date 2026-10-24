@@ -8,7 +8,7 @@ Pacote em `eslint/`, instalado por tag do git (o repositório é público, entã
 precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 
 ```json
-"@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v4.0.1&path:/eslint"
+"@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v4.1.0&path:/eslint"
 ```
 
 O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`;
@@ -49,6 +49,7 @@ recebem o padrão inteiro menos as regras que exigem tipo, com os globais do Nod
 | `eslint-plugin-i18next` (`i18n: true`) | texto visível escrito direto no JSX (entre tags ou em qualquer atributo) ou num toast (`toast("…")`, `toast.error("…")`, `description`, `toast.promise`). Ficam de fora só os atributos e chaves de objeto que são código — rota (`href`, `to`), `data-*`, `testId`, ícone (`name`, `icon`), classe (`className`, `classNames`, `cn(...)`), cor, `aria-hidden`, SVG, `type` —, locale e formato (`toLocaleString`, `Intl.*`), `toast.dismiss(id)` e os testes. Prop nova é cobrada até entrar nessa lista: erro a mais aparece, erro a menos passa calado. Vale para qualquer biblioteca de tradução, e o padrão dos projetos traduzidos é o `i18next` |
 | `eslint-comments` + `linterOptions` | `eslint-disable` de arquivo inteiro, sem regra ou sem motivo (`-- motivo`), e diretiva que não desliga nada |
 | Tamanho, complexidade e boas práticas | `complexity` 12, função 80 linhas, arquivo 400, `max-statements` 30, `max-params` 5, `max-depth` 4, `max-nested-callbacks` 3, boas práticas, ignores comuns |
+| O que o git ignora | todo arquivo que o git ignora (`.gitignore` de qualquer pasta, `.git/info/exclude`) fica fora do lint, consultado no próprio git a partir do `tsconfigRootDir`: o lint local vê o mesmo que a CI. O `ignores` do projeto fica só para o que está no git e não deve ser lintado (código gerado ou de terceiros versionado) |
 | Comentários | espaço depois de `//`, frase em maiúscula (menos quando começa com nome de código, como `hydrateRoot`), nenhum `TODO:`/`FIXME`/`HACK:` no código (vão para o débito técnico, parking lot ou roadmap) |
 | Testes (`*.test.*`, `*.spec.*`, `__tests__/`, `test/`, `e2e/`) | sem limites de tamanho; o resto do padrão vale |
 | Prettier (`eslint-plugin-prettier`) | formatação como regra, por último; `curly` religado depois dele |
